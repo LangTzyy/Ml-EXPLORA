@@ -512,13 +512,6 @@ h4 {
   text-shadow: 0 0 30px rgba(0, 102, 255, 0.5);
 }
 
-.hero-sub {
-  color: var(--text-secondary);
-  font-size: 1.25rem;
-  margin-bottom: 40px;
-  font-family: var(--font-secondary);
-}
-
 .hero-cta {
   display: flex;
   gap: 20px;
@@ -1504,10 +1497,6 @@ h4 {
     font-size: clamp(1.75rem, 7vw, 3rem);
   }
 
-  .hero-sub {
-    font-size: 1.05rem;
-  }
-
   .hero-cta {
     gap: 12px;
     margin-bottom: 40px;
@@ -1564,11 +1553,6 @@ h4 {
   .hero-title {
     font-size: clamp(1.5rem, 8vw, 2.5rem);
     letter-spacing: -0.02em;
-  }
-
-  .hero-sub {
-    font-size: 0.95rem;
-    margin-bottom: 28px;
   }
 
   .hero-badge {
