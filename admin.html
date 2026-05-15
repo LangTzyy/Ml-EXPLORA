@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MLWC Admin Dashboard</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin-body">
+
+<!-- ===== LOGIN OVERLAY ===== -->
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-card">
+    <div class="logo center">
+      <span class="logo-mark">⚔</span>
+      <span>MLWC<small>ADMIN</small></span>
+    </div>
+    <h2>Welcome Back</h2>
+    <p class="muted small">Access the tournament control center</p>
+    <form id="loginForm">
+      <input type="text" id="loginUser" placeholder="Username" class="input" required/>
+      <input type="password" id="loginPass" placeholder="Password" class="input" required/>
+      <button type="submit" class="btn btn-primary block">Sign In →</button>
+    </form>
+    <a href="index.html" class="muted small back-link">← Return to Public View</a>
+  </div>
+</div>
+
+<!-- ===== ADMIN LAYOUT ===== -->
+<div class="admin-shell hidden" id="adminShell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <span class="logo-mark">⚔</span>
+      <span>MLWC <small>Admin</small></span>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="side-link active" data-tab="dashboard">📊 Dashboard</a>
+      <a class="side-link" data-tab="teams">👥 Kelola Tim</a>
+      <a class="side-link" data-tab="schedule">📅 Jadwal Grup</a>
+      <a class="side-link" data-tab="results">⚽ Input Hasil</a>
+      <a class="side-link" data-tab="playoff">🏆 Playoff BO3</a>
+      <a class="side-link" data-tab="settings">⚙️ Pengaturan</a>
+    </nav>
+    <div class="sidebar-foot">
+      <a href="index.html" class="btn btn-ghost block">Public View</a>
+      <button id="logoutBtn" class="btn btn-danger block mt-sm">Logout</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <header class="admin-top">
+      <button class="hamburger admin-hamb" id="adminHamb"><span></span><span></span><span></span></button>
+      <h1 id="tabTitle">Dashboard</h1>
+      <div class="top-actions">
+        <button class="btn btn-ghost" id="exportBtn">⬇ Export JSON</button>
+        <label class="btn btn-ghost">
+          ⬆ Import
+          <input type="file" id="importFile" accept="application/json" hidden/>
+        </label>
+      </div>
+    </header>
+
+    <!-- Dashboard -->
+    <section class="tab" data-tab="dashboard">
+      <div id="adminStats" class="stats-grid"></div>
+      <div class="card glass mt-lg">
+        <h3>Pertandingan Mendatang</h3>
+        <div id="upcomingMini" class="match-grid sm"></div>
+      </div>
+    </section>
+
+    <!-- Tim -->
+    <section class="tab hidden" data-tab="teams">
+      <div class="row-between">
+        <h3>Daftar Tim (<span id="teamCount">0</span>)</h3>
+        <button class="btn btn-primary" id="addTeamBtn">+ Tambah Tim</button>
+      </div>
+      <div id="adminTeams" class="teams-grid mt-md"></div>
+    </section>
+
+    <!-- Jadwal -->
+    <section class="tab hidden" data-tab="schedule">
+      <div class="row-between">
+        <h3>Jadwal Pertandingan Grup</h3>
+        <button class="btn btn-primary" id="genScheduleBtn">⟳ Generate Ulang</button>
+      </div>
+      <div id="adminSchedule" class="match-grid mt-md"></div>
+    </section>
+
+    <!-- Hasil -->
+    <section class="tab hidden" data-tab="results">
+      <h3>Input Hasil Pertandingan Grup (BO1)</h3>
+      <div id="adminResults" class="match-grid mt-md"></div>
+    </section>
+
+    <!-- Playoff -->
+    <section class="tab hidden" data-tab="playoff">
+      <div class="row-between">
+        <h3>Playoff Bracket (BO3)</h3>
+        <button class="btn btn-primary" id="genBracketBtn">⟳ Generate Bracket</button>
+      </div>
+      <div class="bracket-scroll mt-md">
+        <div id="adminBracket" class="bracket"></div>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section class="tab hidden" data-tab="settings">
+      <div class="card glass">
+        <h3>Reset Data Turnamen</h3>
+        <p class="muted">Menghapus semua tim, jadwal, hasil, dan bracket. Dummy data baru akan dibuat ulang.</p>
+        <button class="btn btn-danger" id="resetBtn">⚠ Reset Semua Data</button>
+      </div>
+      <div class="card glass mt-md">
+        <h3>Simulasi Cepat</h3>
+        <p class="muted">Otomatis isi semua hasil grup & playoff secara acak.</p>
+        <button class="btn btn-primary" id="simulateBtn">🎲 Simulasikan Turnamen</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ===== MODAL ===== -->
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal glass">
+    <div class="modal-head">
+      <h3 id="modalTitle">Modal</h3>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="script.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

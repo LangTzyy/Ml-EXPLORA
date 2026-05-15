@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MLWC - Mobile Legends World Championship</title>
+<meta name="description" content="Mobile Legends World Championship - Tournament tracker resmi dengan jadwal, klasemen, bracket dan statistik tim." />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<!-- ===== NAVBAR ===== -->
+<header class="navbar">
+  <div class="nav-inner">
+    <a href="#home" class="logo">
+      <span class="logo-mark">⚔</span>
+      <span>MLWC<small>2026</small></span>
+    </a>
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="nav-links" id="navLinks">
+      <a href="#home" class="nav-link active" data-section="home">Home</a>
+      <a href="#schedule" class="nav-link" data-section="schedule">Jadwal</a>
+      <a href="#standings" class="nav-link" data-section="standings">Klasemen</a>
+      <a href="#results" class="nav-link" data-section="results">Hasil</a>
+      <a href="#bracket" class="nav-link" data-section="bracket">Bracket</a>
+      <a href="#teams" class="nav-link" data-section="teams">Tim</a>
+      <a href="#stats" class="nav-link" data-section="stats">Statistik</a>
+      <a href="admin.html" class="nav-link admin-btn">Admin</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ===== HOME / HERO ===== -->
+<section id="home" class="section hero">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <span class="hero-badge">SEASON 2026 • LIVE</span>
+    <h1 class="hero-title">MOBILE LEGENDS<br/><span class="grad-text">WORLD CHAMPIONSHIP</span></h1>
+    <p class="hero-sub">32 Tim Elit • 8 Grup • Knockout BO3 • Hadiah Total $3,000,000</p>
+    <div class="hero-cta">
+      <a href="#bracket" class="btn btn-primary">Lihat Bracket</a>
+      <a href="#schedule" class="btn btn-ghost">Jadwal Hari Ini</a>
+    </div>
+    <div class="countdown" id="countdown">
+      <div class="cd-item"><span id="cd-days">00</span><small>Hari</small></div>
+      <div class="cd-item"><span id="cd-hours">00</span><small>Jam</small></div>
+      <div class="cd-item"><span id="cd-mins">00</span><small>Menit</small></div>
+      <div class="cd-item"><span id="cd-secs">00</span><small>Detik</small></div>
+    </div>
+    <p class="cd-label">Menuju Grand Final</p>
+  </div>
+</section>
+
+<!-- ===== JADWAL ===== -->
+<section id="schedule" class="section reveal">
+  <div class="section-head">
+    <h2>Jadwal Pertandingan</h2>
+    <p>Pertandingan grup & playoff lengkap.</p>
+  </div>
+  <div class="filter-bar">
+    <input type="text" id="searchSchedule" placeholder="🔍 Cari tim..." class="input"/>
+    <select id="filterGroup" class="input">
+      <option value="">Semua Grup</option>
+    </select>
+    <select id="filterStatus" class="input">
+      <option value="">Semua Status</option>
+      <option value="upcoming">Belum Main</option>
+      <option value="finished">Selesai</option>
+    </select>
+  </div>
+  <div id="scheduleList" class="match-grid"></div>
+</section>
+
+<!-- ===== KLASEMEN ===== -->
+<section id="standings" class="section reveal">
+  <div class="section-head">
+    <h2>Klasemen Grup</h2>
+    <p>2 tim teratas tiap grup lolos ke 16 Besar.</p>
+  </div>
+  <div id="standingsWrap" class="standings-grid"></div>
+</section>
+
+<!-- ===== HASIL ===== -->
+<section id="results" class="section reveal">
+  <div class="section-head">
+    <h2>Hasil Pertandingan</h2>
+    <p>Rangkuman skor terbaru.</p>
+  </div>
+  <div id="resultsList" class="match-grid"></div>
+</section>
+
+<!-- ===== BRACKET ===== -->
+<section id="bracket" class="section reveal">
+  <div class="section-head">
+    <h2>Bracket Playoff</h2>
+    <p>16 Besar → 8 Besar → Semi Final → Grand Final (BO3)</p>
+  </div>
+  <div class="bracket-scroll">
+    <div id="bracket" class="bracket"></div>
+  </div>
+</section>
+
+<!-- ===== TIM ===== -->
+<section id="teams" class="section reveal">
+  <div class="section-head">
+    <h2>Tim Peserta</h2>
+    <p>32 tim terbaik dari seluruh dunia.</p>
+  </div>
+  <input type="text" id="searchTeams" placeholder="🔍 Cari nama tim..." class="input mb-md"/>
+  <div id="teamsGrid" class="teams-grid"></div>
+</section>
+
+<!-- ===== STATISTIK ===== -->
+<section id="stats" class="section reveal">
+  <div class="section-head">
+    <h2>Statistik Turnamen</h2>
+    <p>Performa global semua tim.</p>
+  </div>
+  <div id="statsCards" class="stats-grid"></div>
+  <div class="card glass mt-lg">
+    <h3>Top 10 Tim Berdasarkan Poin</h3>
+    <div id="topTeams" class="top-teams"></div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>© 2026 MLWC • Mobile Legends World Championship • Dibuat untuk simulasi turnamen</p>
+</footer>
+
+<!-- Toast container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
