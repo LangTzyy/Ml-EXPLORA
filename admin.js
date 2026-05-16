@@ -1,20 +1,6 @@
 /* ============================================================
    MLWC ADMIN DASHBOARD
-   - Region dihapus
-   - Bracket playoff kiri-kanan simetris
-   - Timeline turnamen dengan tanggal yang bisa diatur
-   - Bronze match dari loser SF
-   - Nama tim tidak boleh sama
-   - Tidak ada dummy data
-   - Maks 4 tim per grup
-   - Dashboard menampilkan juara jika turnamen selesai
-   - Fitur klasemen grup di admin
-   - [BARU] Fitur swap & edit matchup bracket oleh admin
-   Default credentials: admin / admin123
    ============================================================ */
-
-const ADMIN_USER = 'admin';
-const ADMIN_PASS = 'admin123';
 
 /* ============================================================
    STATE SWAP MODE
@@ -36,7 +22,8 @@ function initAdmin() {
     e.preventDefault();
     const u = document.getElementById('loginUser').value.trim();
     const p = document.getElementById('loginPass').value;
-    if (u === ADMIN_USER && p === ADMIN_PASS) {
+    const creds = getAdminCredentials();
+    if (u === creds.user && p === creds.pass) {
       sessionStorage.setItem(AUTH_KEY, '1');
       showShell();
       toast('Login berhasil. Selamat datang, Admin!', 'success');
@@ -100,6 +87,7 @@ function initAdmin() {
   const resultsFilter = document.getElementById('resultsFilter');
   scheduleFilter?.addEventListener('change', () => renderAdminSchedule());
   resultsFilter?.addEventListener('change', () => renderAdminResults());
+  initSettingsOnLoad()
 }
 
 /* ── UI swap mode ── */
@@ -150,6 +138,7 @@ function renderAdmin() {
   renderUpcomingMini();
   renderTimelineEditor();
   renderAdminStandings();
+  renderSettingsTab();
 }
 
 /* ============ STATS ============ */
@@ -1807,6 +1796,301 @@ function openModal(title, html) {
 
 window.closeModal = function () {
   document.getElementById('modalOverlay').classList.add('hidden');
+};
+
+/* ============ SETTINGS ============ */
+function getAdminCredentials() {
+  try {
+    const saved = localStorage.getItem('mlwc_admin_credentials');
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return { user: 'admin', pass: 'admin123' };
+}
+
+function saveAdminCredentials(user, pass) {
+  localStorage.setItem('mlwc_admin_credentials', JSON.stringify({ user, pass }));
+}
+
+function getSettings() {
+  try {
+    const s = localStorage.getItem('mlwc_settings');
+    if (s) return JSON.parse(s);
+  } catch(e) {}
+  return { tournamentName: 'MLWC', logoDataUrl: '', maxTeamsPerGroup: 4 };
+}
+
+function saveSettingsToStorage(settings) {
+  localStorage.setItem('mlwc_settings', JSON.stringify(settings));
+}
+
+function getMaxTeamsPerGroup() {
+  return getSettings().maxTeamsPerGroup || 4;
+}
+
+function applyTournamentName(name) {
+  document.title = name + ' Admin Dashboard';
+}
+
+function applyLogo(dataUrl) {
+  if (!dataUrl) return;
+  const loginLogo   = document.getElementById('loginLogoImg');
+  const sidebarLogo = document.getElementById('sidebarLogoImg');
+  if (loginLogo)   loginLogo.src   = dataUrl;
+  if (sidebarLogo) sidebarLogo.src = dataUrl;
+}
+
+function initSettingsOnLoad() {
+  const settings = getSettings();
+  applyTournamentName(settings.tournamentName);
+  if (settings.logoDataUrl) applyLogo(settings.logoDataUrl);
+}
+
+function renderSettingsTab() {
+  const settings = getSettings();
+  const creds    = getAdminCredentials();
+
+  const nameInput = document.getElementById('settingTournamentName');
+  if (nameInput) nameInput.value = settings.tournamentName || 'MLWC';
+
+  const preview     = document.getElementById('logoPreview');
+  const placeholder = document.getElementById('logoPlaceholder');
+  const removeBtn   = document.getElementById('logoRemoveBtn');
+  if (preview && placeholder && removeBtn) {
+    if (settings.logoDataUrl) {
+      preview.src = settings.logoDataUrl;
+      preview.classList.remove('hidden');
+      placeholder.classList.add('hidden');
+      removeBtn.style.display = 'inline-flex';
+    } else {
+      preview.classList.add('hidden');
+      placeholder.classList.remove('hidden');
+      removeBtn.style.display = 'none';
+    }
+  }
+
+  const maxDisplay = document.getElementById('maxTeamsDisplay');
+  if (maxDisplay) maxDisplay.textContent = settings.maxTeamsPerGroup || 4;
+
+  const userDisplay = document.getElementById('currentUserDisplay');
+  if (userDisplay) userDisplay.textContent = creds.user;
+
+  const logoArea  = document.getElementById('logoUploadArea');
+  const logoInput = document.getElementById('logoUploadInput');
+  if (logoArea && logoInput) {
+    logoArea.onclick = () => logoInput.click();
+    logoInput.onchange = handleLogoUpload;
+  }
+
+  // Bind tombol — pakai onclick agar tidak double-bind setiap render
+  const saveBtn = document.getElementById('saveSettingsBtn');
+  if (saveBtn) saveBtn.onclick = saveSettings;
+  const selResetBtn = document.getElementById('selectiveResetBtn');
+  if (selResetBtn) selResetBtn.onclick = openSelectiveResetModal;
+  const changePassBtn = document.getElementById('changePassBtn');
+  if (changePassBtn) changePassBtn.onclick = openChangePassModal;
+}
+
+window.changeMaxTeams = function(delta) {
+  const display = document.getElementById('maxTeamsDisplay');
+  if (!display) return;
+  let val = parseInt(display.textContent) + delta;
+  val = Math.max(2, Math.min(8, val));
+  display.textContent = val;
+};
+
+function handleLogoUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { toast('Ukuran logo maksimal 2MB', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const preview     = document.getElementById('logoPreview');
+    const placeholder = document.getElementById('logoPlaceholder');
+    const removeBtn   = document.getElementById('logoRemoveBtn');
+    const logoArea    = document.getElementById('logoUploadArea');
+    if (preview)     { preview.src = ev.target.result; preview.classList.remove('hidden'); }
+    if (placeholder) placeholder.classList.add('hidden');
+    if (removeBtn)   removeBtn.style.display = 'inline-flex';
+    if (logoArea)    logoArea.dataset.pendingLogo = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+window.removeLogo = function() {
+  const preview     = document.getElementById('logoPreview');
+  const placeholder = document.getElementById('logoPlaceholder');
+  const removeBtn   = document.getElementById('logoRemoveBtn');
+  const logoArea    = document.getElementById('logoUploadArea');
+  if (preview)     { preview.src = ''; preview.classList.add('hidden'); }
+  if (placeholder) placeholder.classList.remove('hidden');
+  if (removeBtn)   removeBtn.style.display = 'none';
+  if (logoArea)    logoArea.dataset.pendingLogo = '';
+};
+
+function saveSettings() {
+  const settings = getSettings();
+  const nameInput = document.getElementById('settingTournamentName');
+  if (nameInput) settings.tournamentName = nameInput.value.trim() || 'MLWC';
+
+  const logoArea = document.getElementById('logoUploadArea');
+  if (logoArea && logoArea.dataset.pendingLogo !== undefined) {
+    settings.logoDataUrl = logoArea.dataset.pendingLogo;
+  }
+
+  const maxDisplay = document.getElementById('maxTeamsDisplay');
+  if (maxDisplay) settings.maxTeamsPerGroup = parseInt(maxDisplay.textContent) || 4;
+
+  saveSettingsToStorage(settings);
+  applyTournamentName(settings.tournamentName);
+  applyLogo(settings.logoDataUrl);
+  toast('Pengaturan berhasil disimpan ✅', 'success');
+}
+
+function openChangePassModal() {
+  const creds = getAdminCredentials();
+  openModal('🔐 Ganti Username & Password', `
+    <div class="form-grid" style="gap:16px">
+      <div><label>Username Baru</label>
+        <input id="newAdminUser" class="input" value="${creds.user}" placeholder="Username" autocomplete="off"/></div>
+      <div><label>Password Lama</label>
+        <input id="oldAdminPass" class="input" type="password" placeholder="Masukkan password saat ini"/></div>
+      <div><label>Password Baru</label>
+        <input id="newAdminPass" class="input" type="password" placeholder="Min. 6 karakter"/></div>
+      <div><label>Konfirmasi Password Baru</label>
+        <input id="confirmAdminPass" class="input" type="password" placeholder="Ulangi password baru"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary" onclick="saveAdminPass()">💾 Simpan</button>
+    </div>
+  `);
+}
+
+window.saveAdminPass = function() {
+  const creds       = getAdminCredentials();
+  const newUser     = document.getElementById('newAdminUser').value.trim();
+  const oldPass     = document.getElementById('oldAdminPass').value;
+  const newPass     = document.getElementById('newAdminPass').value;
+  const confirmPass = document.getElementById('confirmAdminPass').value;
+  if (!newUser)                { toast('Username tidak boleh kosong', 'error'); return; }
+  if (oldPass !== creds.pass)  { toast('Password lama salah', 'error'); return; }
+  if (newPass.length < 6)      { toast('Password baru minimal 6 karakter', 'error'); return; }
+  if (newPass !== confirmPass) { toast('Konfirmasi password tidak cocok', 'error'); return; }
+  saveAdminCredentials(newUser, newPass);
+  const userDisplay = document.getElementById('currentUserDisplay');
+  if (userDisplay) userDisplay.textContent = newUser;
+  closeModal();
+  toast('Username & password berhasil diubah!', 'success');
+};
+
+function openSelectiveResetModal() {
+  const data = getData();
+  const hasResults        = data.matches.some(m => m.played);
+  const hasMatches        = data.matches.length > 0;
+  const hasBracket        = data.bracket?.r16?.length > 0;
+  const hasBracketResults = hasBracket && getAllBracketMatches(data).some(m => m.played);
+  const hasTimeline       = !!data.timeline;
+  const hasTeams          = data.teams.length > 0;
+
+  const opt = (id, emoji, title, desc, available) => `
+    <label class="selective-reset-option ${available ? '' : 'disabled'}"
+           style="${available ? 'cursor:pointer' : 'opacity:0.4;cursor:not-allowed'}">
+      <input type="checkbox" class="selective-check" id="${id}" ${available ? '' : 'disabled'}
+             style="accent-color:var(--blue-electric);width:16px;height:16px;flex-shrink:0;margin-top:2px"/>
+      <div class="selective-option-body">
+        <div class="selective-option-title">${emoji} ${title}</div>
+        <div class="selective-option-desc">${desc}</div>
+      </div>
+      ${available ? '' : '<span class="selective-unavail">Tidak ada data</span>'}
+    </label>`;
+
+  openModal('🎯 Reset Selektif', `
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="padding:10px 14px;background:rgba(255,171,0,0.07);border:1px solid rgba(255,171,0,0.25);border-radius:8px;font-size:0.8rem;color:#ffab00;">
+        ⚠️ Centang bagian yang ingin direset. Data lain tetap aman.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${opt('reset-results',         '⚽', 'Hasil Match Grup',        `${data.matches.filter(m=>m.played).length} hasil — skor direset, jadwal tetap`, hasResults)}
+        ${opt('reset-schedule',        '📅', 'Jadwal Grup',             `${data.matches.length} match dihapus, tim tetap ada`, hasMatches)}
+        ${opt('reset-bracket-results', '🏅', 'Hasil Bracket Playoff',   'Skor & pemenang direset, matchup tetap', hasBracketResults)}
+        ${opt('reset-bracket',         '🏆', 'Bracket Playoff',         'Seluruh bracket dihapus, bisa generate ulang', hasBracket)}
+        ${opt('reset-timeline',        '🗓', 'Timeline',                'Tanggal dikembalikan ke default', hasTimeline)}
+        ${opt('reset-teams',           '👥', 'Semua Tim',               `${data.teams.length} tim + semua jadwal & bracket dihapus`, hasTeams)}
+      </div>
+      <div id="resetPreview" class="selective-preview" style="display:none">
+        <div class="selective-preview-label">Dampak reset:</div>
+        <div id="resetPreviewList"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+        <button class="btn btn-danger" onclick="executeSelectiveReset()" id="doResetBtn" disabled>⚠️ Reset yang Dipilih</button>
+      </div>
+    </div>
+  `);
+
+  document.querySelectorAll('.selective-check').forEach(cb => {
+    cb.addEventListener('change', updateResetPreview);
+  });
+}
+
+function updateResetPreview() {
+  const data    = getData();
+  const checked = getCheckedResets();
+  const preview = document.getElementById('resetPreview');
+  const list    = document.getElementById('resetPreviewList');
+  const doBtn   = document.getElementById('doResetBtn');
+  if (!checked.length) { preview.style.display = 'none'; doBtn.disabled = true; return; }
+  doBtn.disabled = false;
+  preview.style.display = 'block';
+  const impacts = [];
+  if (checked.includes('reset-results'))         impacts.push(`• ${data.matches.filter(m=>m.played).length} hasil match grup dihapus`);
+  if (checked.includes('reset-schedule'))        impacts.push(`• ${data.matches.length} jadwal & semua hasil grup dihapus`);
+  if (checked.includes('reset-bracket-results')) impacts.push(`• Skor & pemenang bracket direset`);
+  if (checked.includes('reset-bracket'))         impacts.push(`• Bracket playoff dihapus sepenuhnya`);
+  if (checked.includes('reset-timeline'))        impacts.push(`• Timeline dikembalikan ke default`);
+  if (checked.includes('reset-teams'))           impacts.push(`• ${data.teams.length} tim, jadwal & bracket dihapus`);
+  list.innerHTML = impacts.map(i => `<div style="font-size:0.8rem;color:var(--text-secondary);padding:2px 0">${i}</div>`).join('');
+}
+
+function getCheckedResets() {
+  return [...document.querySelectorAll('.selective-check:checked')].map(cb => cb.id);
+}
+
+window.executeSelectiveReset = function() {
+  const checked = getCheckedResets();
+  if (!checked.length) return;
+  const labels = {
+    'reset-results': 'hasil match grup', 'reset-schedule': 'jadwal grup',
+    'reset-bracket-results': 'hasil bracket', 'reset-bracket': 'bracket playoff',
+    'reset-timeline': 'timeline', 'reset-teams': 'semua tim',
+  };
+  if (!confirm(`Reset: ${checked.map(id => labels[id]).join(', ')}? Tidak bisa dibatalkan.`)) return;
+  const data = getData();
+  if (checked.includes('reset-teams')) {
+    data.teams = []; data.matches = [];
+    data.bracket = { r16:[], qf:[], sf:[], bronze:[], final:[] };
+  } else {
+    if (checked.includes('reset-schedule')) {
+      data.matches = [];
+    } else if (checked.includes('reset-results')) {
+      data.matches.forEach(m => { m.played = false; m.scoreA = null; m.scoreB = null; });
+    }
+    if (checked.includes('reset-bracket')) {
+      data.bracket = { r16:[], qf:[], sf:[], bronze:[], final:[] };
+    } else if (checked.includes('reset-bracket-results')) {
+      getAllBracketMatches(data).forEach(m => {
+        m.played = false; m.scoreA = null; m.scoreB = null; m.winner = null;
+      });
+      ['qf','sf','bronze','final'].forEach(round => {
+        data.bracket?.[round]?.forEach(m => { m.teamA = null; m.teamB = null; });
+      });
+    }
+  }
+  if (checked.includes('reset-timeline')) data.timeline = DEFAULT_TIMELINE;
+  saveData(data);
+  closeModal();
+  renderAdmin();
+  toast(`Reset selesai: ${checked.map(id => labels[id]).join(', ')}.`, 'success');
 };
 
 window.toast = function (msg, type = 'info') {

@@ -205,17 +205,123 @@
 
     <!-- Settings -->
     <section class="tab hidden" data-tab="settings">
-      <div class="card glass">
-        <h3>Reset Data Turnamen</h3>
-        <p class="muted">Menghapus semua tim, jadwal, hasil, dan bracket. Data akan dikosongkan sepenuhnya.</p>
-        <button class="btn btn-danger" id="resetBtn">⚠ Reset Semua Data</button>
+
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <span class="settings-section-icon">🏆</span>
+      <div>
+        <div class="settings-section-title">Konfigurasi Turnamen</div>
+        <div class="settings-section-desc">Atur identitas dan format turnamen</div>
       </div>
-      <div class="card glass mt-md">
-        <h3>Simulasi Cepat</h3>
-        <p class="muted">Otomatis isi semua hasil grup & playoff secara acak (membutuhkan tim yang sudah ditambahkan).</p>
-        <button class="btn btn-primary" id="simulateBtn">🎲 Simulasikan Turnamen</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <label class="settings-label">Nama Turnamen</label>
+        <div class="settings-control">
+          <input id="settingTournamentName" class="input" placeholder="Contoh: MLWC Season 3"/>
+          <span class="settings-hint">Tampil di header, export Word/PDF, dan halaman publik</span>
+        </div>
       </div>
-    </section>
+      <div class="settings-row">
+        <label class="settings-label">Logo Turnamen</label>
+        <div class="settings-control">
+          <div class="logo-upload-area" id="logoUploadArea">
+            <img id="logoPreview" src="" alt="" class="logo-preview hidden"/>
+            <div id="logoPlaceholder" class="logo-placeholder">
+              <span>🖼</span>
+              <span>Klik untuk upload logo</span>
+              <span class="settings-hint">PNG/JPG/SVG, maks 2MB</span>
+            </div>
+            <input type="file" id="logoUploadInput" accept="image/*" hidden/>
+          </div>
+          <button class="btn btn-ghost sm" id="logoRemoveBtn" style="margin-top:8px;display:none" onclick="removeLogo()">🗑 Hapus Logo</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label class="settings-label">Maks Tim per Grup</label>
+        <div class="settings-control">
+          <div class="settings-stepper">
+            <button class="stepper-btn" onclick="changeMaxTeams(-1)">−</button>
+            <span id="maxTeamsDisplay" class="stepper-val">4</span>
+            <button class="stepper-btn" onclick="changeMaxTeams(1)">+</button>
+          </div>
+          <span class="settings-hint">Default: 4. Berlaku saat tambah/import tim berikutnya.</span>
+        </div>
+      </div>
+      <div class="settings-actions">
+        <button class="btn btn-primary" id="saveSettingsBtn">💾 Simpan Pengaturan</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <span class="settings-section-icon">🔐</span>
+      <div>
+        <div class="settings-section-title">Manajemen Admin</div>
+        <div class="settings-section-desc">Kelola akses dan keamanan akun admin</div>
+      </div>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <label class="settings-label">Kredensial Login</label>
+        <div class="settings-control">
+          <div class="credentials-display">
+            <span class="cred-item">👤 <span id="currentUserDisplay">admin</span></span>
+            <span class="cred-item">🔒 ••••••••</span>
+          </div>
+          <button class="btn btn-ghost sm" id="changePassBtn" style="margin-top:10px">✏️ Ganti Username & Password</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <span class="settings-section-icon">🗂</span>
+      <div>
+        <div class="settings-section-title">Backup & Data</div>
+        <div class="settings-section-desc">Reset selektif per bagian tanpa hapus semua</div>
+      </div>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <label class="settings-label">Reset Selektif</label>
+        <div class="settings-control">
+          <p class="muted" style="font-size:0.8rem;margin-bottom:10px">Pilih bagian mana yang ingin direset tanpa menghapus data lainnya.</p>
+          <button class="btn btn-ghost" id="selectiveResetBtn">🎯 Pilih & Reset...</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-section settings-danger-zone">
+    <div class="settings-section-header">
+      <span class="settings-section-icon">⚠️</span>
+      <div>
+        <div class="settings-section-title">Danger Zone</div>
+        <div class="settings-section-desc">Aksi permanen yang tidak bisa dibatalkan</div>
+      </div>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <label class="settings-label">Reset Total</label>
+        <div class="settings-control">
+          <p class="muted" style="font-size:0.8rem;margin-bottom:10px">Hapus semua tim, jadwal, hasil, dan bracket sekaligus.</p>
+          <button class="btn btn-danger" id="resetBtn">⚠ Reset Semua Data</button>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label class="settings-label">Simulasi Cepat</label>
+        <div class="settings-control">
+          <p class="muted" style="font-size:0.8rem;margin-bottom:10px">Otomatis isi semua hasil grup & playoff secara acak.</p>
+          <button class="btn btn-primary" id="simulateBtn">🎲 Simulasikan Turnamen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
   </main>
 </div>
 
