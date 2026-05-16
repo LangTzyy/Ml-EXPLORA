@@ -1888,3 +1888,9 @@ h4 {
   min-width: 0;
   font-weight: 500;
 }
+
+.match-date-row {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  margin-bottom: 12px;
+}

@@ -6,24 +6,44 @@
 <title>MLWC Admin Dashboard</title>
 <link rel="stylesheet" href="style.css" />
 <link rel="stylesheet" href="admin.css" />
+<!-- SheetJS untuk baca file Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body class="admin-body">
 
 <!-- ===== LOGIN OVERLAY ===== -->
 <div id="loginOverlay" class="login-overlay">
+  <div class="login-bg-grid"></div>
+  <div class="login-orb login-orb-1"></div>
+  <div class="login-orb login-orb-2"></div>
+  <div class="login-orb login-orb-3"></div>
   <div class="login-card">
-    <div class="logo center">
-      <span class="logo-mark">⚔</span>
-      <span>MLWC<small>ADMIN</small></span>
+    <div class="login-card-glow"></div>
+    <div class="login-logo">
+      <!-- ✏️ GANTI src="" dengan path logo Anda, contoh: src="images/logo.png" -->
+      <img src="assets/img/Logo.png" alt="MLWC Logo" class="login-logo-img" id="loginLogoImg"
+           onerror="this.style.display='none'; document.getElementById('loginLogoFallback').style.display='grid';" />
+      <!-- Fallback icon jika logo belum diset -->
+      <div class="login-logo-icon" id="loginLogoFallback">⚔</div>
     </div>
-    <h2>Welcome Back</h2>
-    <p class="muted small">Access the tournament control center</p>
-    <form id="loginForm">
-      <input type="text" id="loginUser" placeholder="Username" class="input" required/>
-      <input type="password" id="loginPass" placeholder="Password" class="input" required/>
-      <button type="submit" class="btn btn-primary block">Sign In →</button>
+    <div class="login-divider"></div>
+    <h2 class="login-title">Welcome Back</h2>
+    <p class="login-desc">Masuk ke Tournament Control Center</p>
+    <form id="loginForm" class="login-form">
+      <div class="login-field">
+        <span class="login-field-icon">👤</span>
+        <input type="text" id="loginUser" placeholder="Username" class="input login-input" required/>
+      </div>
+      <div class="login-field">
+        <span class="login-field-icon">🔒</span>
+        <input type="password" id="loginPass" placeholder="Password" class="input login-input" required/>
+      </div>
+      <button type="submit" class="btn btn-primary login-btn">
+        <span>Sign In</span>
+        <span class="login-btn-arrow">→</span>
+      </button>
     </form>
-    <a href="index.html" class="muted small back-link">← Return to Public View</a>
+    <a href="index.html" class="login-back">← Kembali ke Public View</a>
   </div>
 </div>
 
@@ -31,15 +51,17 @@
 <div class="admin-shell hidden" id="adminShell">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-head">
-      <span class="logo-mark">⚔</span>
-      <span>MLWC <small>Admin</small></span>
+      <img src="assets/img/Logo.png" alt="Logo" class="sidebar-logo-img" id="sidebarLogoImg"
+           onerror="this.style.display='none'; document.getElementById('sidebarLogoFallback').style.display='grid';" />
     </div>
     <nav class="sidebar-nav">
       <a class="side-link active" data-tab="dashboard">📊 Dashboard</a>
       <a class="side-link" data-tab="teams">👥 Kelola Tim</a>
       <a class="side-link" data-tab="schedule">📅 Jadwal Grup</a>
       <a class="side-link" data-tab="results">⚽ Input Hasil</a>
+      <a class="side-link" data-tab="standings">📈 Klasemen Grup</a>
       <a class="side-link" data-tab="playoff">🏆 Playoff BO3</a>
+      <a class="side-link" data-tab="timeline">🗓️ Timeline</a>
       <a class="side-link" data-tab="settings">⚙️ Pengaturan</a>
     </nav>
     <div class="sidebar-foot">
@@ -53,10 +75,19 @@
       <button class="hamburger admin-hamb" id="adminHamb"><span></span><span></span><span></span></button>
       <h1 id="tabTitle">Dashboard</h1>
       <div class="top-actions">
-        <button class="btn btn-ghost" id="exportBtn">⬇ Export JSON</button>
+        <div class="export-dropdown">
+          <div class="export-btn-group">
+            <button class="btn btn-primary" id="exportWordBtn">📄 Export Word</button>
+            <button class="btn btn-primary dropdown-toggle" id="exportDropdownToggle">▼</button>
+          </div>
+          <div class="dropdown-menu hidden" id="exportDropdownMenu">
+            <button id="exportWordOnlyBtn">📄 Export ke Word</button>
+            <button id="exportPdfBtn">📑 Export ke PDF</button>
+          </div>
+        </div>
         <label class="btn btn-ghost">
           ⬆ Import
-          <input type="file" id="importFile" accept="application/json" hidden/>
+          <input type="file" id="importFile" accept=".xlsx,.xls,application/json" hidden/>
         </label>
       </div>
     </header>
@@ -65,8 +96,8 @@
     <section class="tab" data-tab="dashboard">
       <div id="adminStats" class="stats-grid"></div>
       <div class="card glass mt-lg">
-        <h3>Pertandingan Mendatang</h3>
-        <div id="upcomingMini" class="match-grid sm"></div>
+        <h3>Pertandingan Mendatang / Hasil Turnamen</h3>
+        <div id="upcomingMini" class="match-list"></div>
       </div>
     </section>
 
@@ -76,45 +107,112 @@
         <h3>Daftar Tim (<span id="teamCount">0</span>)</h3>
         <button class="btn btn-primary" id="addTeamBtn">+ Tambah Tim</button>
       </div>
-      <div id="adminTeams" class="teams-grid mt-md"></div>
+      <div id="adminTeams" class="teams-list"></div>
     </section>
 
     <!-- Jadwal -->
     <section class="tab hidden" data-tab="schedule">
       <div class="row-between">
         <h3>Jadwal Pertandingan Grup</h3>
-        <button class="btn btn-primary" id="genScheduleBtn">⟳ Generate Ulang</button>
+        <div class="filter-group">
+          <label>Filter Grup:</label>
+          <select id="scheduleFilter" class="input sm">
+            <option value="all">Semua Grup</option>
+            <option value="A">Grup A</option>
+            <option value="B">Grup B</option>
+            <option value="C">Grup C</option>
+            <option value="D">Grup D</option>
+            <option value="E">Grup E</option>
+            <option value="F">Grup F</option>
+            <option value="G">Grup G</option>
+            <option value="H">Grup H</option>
+          </select>
+          <button class="btn btn-primary" id="genScheduleBtn">⟳ Generate Ulang</button>
+        </div>
       </div>
-      <div id="adminSchedule" class="match-grid mt-md"></div>
+      <div id="adminSchedule" class="match-list mt-md"></div>
     </section>
 
     <!-- Hasil -->
     <section class="tab hidden" data-tab="results">
-      <h3>Input Hasil Pertandingan Grup (BO1)</h3>
-      <div id="adminResults" class="match-grid mt-md"></div>
+      <div class="row-between">
+        <h3>Input Hasil Pertandingan Grup (BO1)</h3>
+        <div class="filter-group">
+          <label>Filter Grup:</label>
+          <select id="resultsFilter" class="input sm">
+            <option value="all">Semua Grup</option>
+            <option value="A">Grup A</option>
+            <option value="B">Grup B</option>
+            <option value="C">Grup C</option>
+            <option value="D">Grup D</option>
+            <option value="E">Grup E</option>
+            <option value="F">Grup F</option>
+            <option value="G">Grup G</option>
+            <option value="H">Grup H</option>
+          </select>
+        </div>
+      </div>
+      <div id="adminResults" class="match-list mt-md"></div>
+    </section>
+
+    <!-- Klasemen Grup -->
+    <section class="tab hidden" data-tab="standings">
+      <div class="row-between">
+        <h3>📈 Klasemen Grup</h3>
+        <p class="muted" style="font-size:0.8rem">Win = +1 · Draw = 0 · Loss = -1</p>
+      </div>
+      <div id="adminStandings" class="standings-grid mt-md"></div>
     </section>
 
     <!-- Playoff -->
     <section class="tab hidden" data-tab="playoff">
       <div class="row-between">
         <h3>Playoff Bracket (BO3)</h3>
-        <button class="btn btn-primary" id="genBracketBtn">⟳ Generate Bracket</button>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <!-- Info mode edit -->
+          <span id="swapModeInfo" class="swap-mode-info hidden">
+            🔄 Mode Edit Aktif — Klik match untuk swap/edit tim
+          </span>
+          <button class="btn btn-ghost" id="toggleSwapModeBtn" title="Aktifkan mode edit matchup">
+            ✏️ Edit Matchup
+          </button>
+          <button class="btn btn-primary" id="genBracketBtn">⟳ Generate Bracket</button>
+        </div>
       </div>
+
+      <!-- Panduan edit matchup -->
+      <div id="swapGuide" class="swap-guide hidden">
+        <div class="swap-guide-inner">
+          <span>💡 <strong>Cara Edit Matchup:</strong></span>
+          <span>① Klik match → ② Pilih aksi (Swap Tim / Ganti Tim) → ③ Simpan</span>
+          <button class="btn btn-ghost sm" id="exitSwapModeBtn">✕ Keluar Mode Edit</button>
+        </div>
+      </div>
+
       <div class="bracket-scroll mt-md">
-        <div id="adminBracket" class="bracket"></div>
+        <div id="adminBracket" class="bracket bracket-centered"></div>
       </div>
+    </section>
+
+    <!-- Timeline -->
+    <section class="tab hidden" data-tab="timeline">
+      <div class="row-between">
+        <h3>🗓️ Timeline Turnamen</h3>
+        <button class="btn btn-primary" id="saveTimelineBtn">💾 Simpan Timeline</button>
+      </div>
+      <div class="timeline-editor" id="timelineEditor"></div>
     </section>
 
     <!-- Settings -->
     <section class="tab hidden" data-tab="settings">
       <div class="card glass">
         <h3>Reset Data Turnamen</h3>
-        <p class="muted">Menghapus semua tim, jadwal, hasil, dan bracket. Dummy data baru akan dibuat ulang.</p>
+        <p class="muted">Menghapus semua tim, jadwal, hasil, dan bracket. Data akan dikosongkan sepenuhnya.</p>
         <button class="btn btn-danger" id="resetBtn">⚠ Reset Semua Data</button>
       </div>
       <div class="card glass mt-md">
         <h3>Simulasi Cepat</h3>
-        <p class="muted">Otomatis isi semua hasil grup & playoff secara acak.</p>
+        <p class="muted">Otomatis isi semua hasil grup & playoff secara acak (membutuhkan tim yang sudah ditambahkan).</p>
         <button class="btn btn-primary" id="simulateBtn">🎲 Simulasikan Turnamen</button>
       </div>
     </section>
