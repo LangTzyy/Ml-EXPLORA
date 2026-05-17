@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MLWC - Mobile Legends World Championship</title>
+  <title>EXPLORA 2026 - Mobile Legends Tournament</title>
   <meta name="description"
-    content="Mobile Legends World Championship - Tournament tracker resmi dengan jadwal, klasemen, bracket dan statistik tim." />
+    content="EXPLORA 2026 - Tournament tracker resmi dengan jadwal, klasemen, bracket dan statistik tim." />
   <link rel="stylesheet" href="style.css" />
 </head>
 
@@ -15,7 +15,7 @@
   <header class="navbar">
     <div class="nav-inner">
       <a href="#home" class="logo">
-        <img src="assets/img/Logo.png" alt="MLWC Logo" class="logo-img" style="height: 40px;" />
+        <img src="assets/img/Logo.png" alt="EXPLORA 2026 Logo" class="logo-img" style="height: 40px;" />
       </a>
       <button class="hamburger" id="hamburger" aria-label="Menu">
         <span></span><span></span><span></span>
@@ -57,17 +57,12 @@
   <section id="schedule" class="section reveal">
     <div class="section-head">
       <h2>Jadwal Pertandingan</h2>
-      <p>Pertandingan grup & playoff lengkap.</p>
+      <p>Pertandingan yang belum dimainkan.</p>
     </div>
     <div class="filter-bar">
       <input type="text" id="searchSchedule" placeholder="🔍 Cari tim..." class="input" />
       <select id="filterGroup" class="input">
         <option value="">Semua Grup</option>
-      </select>
-      <select id="filterStatus" class="input">
-        <option value="">Semua Status</option>
-        <option value="upcoming">Belum Main</option>
-        <option value="finished">Selesai</option>
       </select>
     </div>
     <div id="scheduleList" class="match-grid"></div>
@@ -86,7 +81,22 @@
   <section id="results" class="section reveal">
     <div class="section-head">
       <h2>Hasil Pertandingan</h2>
-      <p>Rangkuman skor terbaru.</p>
+      <p>Rangkuman skor terbaru dari semua tahap.</p>
+    </div>
+    <div class="filter-bar filter-bar--results">
+      <input type="text" id="searchResults" placeholder="🔍 Cari tim..." class="input" />
+      <select id="filterResultGroup" class="input">
+        <option value="">Semua Grup</option>
+      </select>
+      <select id="filterResultStage" class="input">
+        <option value="">Semua Tahap</option>
+        <option value="group">Babak Grup</option>
+        <option value="r16">16 Besar</option>
+        <option value="qf">8 Besar</option>
+        <option value="sf">Semifinal</option>
+        <option value="bronze">Perebutan Juara 3</option>
+        <option value="final">Grand Final</option>
+      </select>
     </div>
     <div id="resultsList" class="match-grid"></div>
   </section>

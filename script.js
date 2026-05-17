@@ -59,7 +59,7 @@ const LOGO_COLORS = [
   'linear-gradient(135deg,#7b2cbf,#3a86ff)',
 ];
 
-/* Timeline default (juga dipakai admin.js) */
+/* Timeline default */
 const DEFAULT_TIMELINE = [
   { id:'group-ad', icon:'⚔️', label:'Babak Grup A–D',   desc:'Round robin Grup A, B, C, D',                             date:'2026-06-06', cssClass:'stage-group-ad' },
   { id:'group-eh', icon:'⚔️', label:'Babak Grup E–H',   desc:'Round robin Grup E, F, G, H',                             date:'2026-06-07', cssClass:'stage-group-eh' },
@@ -78,7 +78,6 @@ function loadData() {
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
-      /* Pastikan field timeline selalu ada */
       if (!parsed.timeline) {
         parsed.timeline = DEFAULT_TIMELINE.map(t => ({ ...t }));
         saveData(parsed);
@@ -97,13 +96,6 @@ function saveData(data) {
 
 function getData() { return loadData(); }
 
-/* ============================================================
-   PATCH script.js: generateInitialData tanpa dummy data
-   
-   Ganti fungsi generateInitialData() yang lama dengan ini.
-   Sekarang mulai dari kosong, tanpa dummy teams.
-   ============================================================ */
-
 function generateInitialData() {
   return {
     teams   : [],
@@ -113,6 +105,7 @@ function generateInitialData() {
     meta    : { createdAt: new Date().toISOString() },
   };
 }
+
 /* Jadwal round-robin per grup */
 function generateGroupSchedule(teams) {
   const matches = [];
@@ -176,7 +169,6 @@ function buildBracketFromStandings(data) {
   data = data || getData();
   const standings = computeStandings(data);
 
-  /* Pasangan R16: A1 vs B2, C1 vs D2, dst. */
   const pairDefs = [
     ['A',1,'B',2], ['C',1,'D',2], ['E',1,'F',2], ['G',1,'H',2],
     ['B',1,'A',2], ['D',1,'C',2], ['F',1,'E',2], ['H',1,'G',2],
@@ -210,11 +202,9 @@ function buildBracketFromStandings(data) {
   };
 }
 
-/* Propagasi hasil bracket ke round berikutnya */
 function advanceBracket(data) {
   const br = data.bracket;
 
-  /* R16 → QF */
   for (let i = 0; i < 4; i++) {
     const m1 = br.r16[i*2];
     const m2 = br.r16[i*2+1];
@@ -225,7 +215,6 @@ function advanceBracket(data) {
     }
   }
 
-  /* QF → SF */
   for (let i = 0; i < 2; i++) {
     const m1 = br.qf[i*2];
     const m2 = br.qf[i*2+1];
@@ -236,14 +225,12 @@ function advanceBracket(data) {
     }
   }
 
-  /* SF → Final (winner) + Bronze (loser) */
   const sf1 = br.sf[0];
   const sf2 = br.sf[1];
 
   br.final[0].teamA = sf1?.winner || null;
   br.final[0].teamB = sf2?.winner || null;
 
-  /* Loser = tim yang bukan winner */
   const loser1 = sf1?.winner ? (sf1.winner === sf1.teamA ? sf1.teamB : sf1.teamA) : null;
   const loser2 = sf2?.winner ? (sf2.winner === sf2.teamA ? sf2.teamB : sf2.teamA) : null;
   br.bronze[0].teamA = loser1;
@@ -354,7 +341,7 @@ function renderAll() {
   populateGroupFilter();
 }
 
-/* ─── SCHEDULE ─── */
+/* ─── SCHEDULE — hanya tampilkan yang BELUM dimainkan ─── */
 function renderSchedule() {
   const wrap = document.getElementById('scheduleList');
   if (!wrap) return;
@@ -362,12 +349,11 @@ function renderSchedule() {
   const tl     = getTimeline(data);
   const search = (document.getElementById('searchSchedule')?.value || '').toLowerCase();
   const groupF = document.getElementById('filterGroup')?.value || '';
-  const statusF= document.getElementById('filterStatus')?.value || '';
 
-  let list = data.matches.slice();
-  if (groupF)              list = list.filter(m => m.group === groupF);
-  if (statusF==='upcoming') list = list.filter(m => !m.played);
-  if (statusF==='finished') list = list.filter(m => m.played);
+  /* Hanya match yang BELUM selesai */
+  let list = data.matches.filter(m => !m.played);
+
+  if (groupF) list = list.filter(m => m.group === groupF);
   if (search) {
     list = list.filter(m => {
       const a = teamById(m.teamA, data)?.name.toLowerCase() || '';
@@ -377,7 +363,7 @@ function renderSchedule() {
   }
 
   if (!list.length) {
-    wrap.innerHTML = emptyState('🎮','Tidak ada pertandingan','Coba ubah filter pencarian.');
+    wrap.innerHTML = emptyState('✅','Semua pertandingan sudah selesai','Lihat hasil di bagian Hasil Pertandingan.');
     return;
   }
   wrap.innerHTML = list.slice(0, 60).map(m => matchCardHtml(m, data, tl)).join('');
@@ -391,7 +377,7 @@ function getMatchDateFromTimeline(match, tl) {
   return entry?.date ? formatDateID(entry.date) : '';
 }
 
-function matchCardHtml(m, data, tl) {
+function matchCardHtml(m, data, tl, showStatus = false) {
   const a      = teamById(m.teamA, data);
   const b      = teamById(m.teamB, data);
   const winA   = m.played && m.scoreA > m.scoreB;
@@ -402,7 +388,7 @@ function matchCardHtml(m, data, tl) {
     <div class="match-card">
       <div class="match-meta">
         <span class="match-tag">Grup ${m.group} • BO1</span>
-        <span class="match-tag ${m.played ? 'done' : ''}">${m.played ? '✓ Selesai' : '⏳ Belum'}</span>
+        ${showStatus ? `<span class="match-tag ${m.played ? 'done' : ''}">${m.played ? '✓ Selesai' : '⏳ Belum'}</span>` : ''}
       </div>
       ${dateStr ? `<div class="match-date-row">📅 ${dateStr}</div>` : ''}
       <div class="match-row">
@@ -419,21 +405,61 @@ function matchCardHtml(m, data, tl) {
     </div>`;
 }
 
+/* Match card untuk bracket (playoff) */
+function bracketResultCardHtml(m, data, stageLabel) {
+  const a    = teamById(m.teamA, data);
+  const b    = teamById(m.teamB, data);
+  const winA = m.played && m.scoreA > m.scoreB;
+  const winB = m.played && m.scoreB > m.scoreA;
+
+  return `
+    <div class="match-card">
+      <div class="match-meta">
+        <span class="match-tag gold">${stageLabel} • BO3</span>
+        <span class="match-tag done">✓ Selesai</span>
+      </div>
+      <div class="match-row">
+        <div class="match-team ${winA ? 'win' : 'lose'}">
+          <span>${a?.name || '?'}</span>
+        </div>
+        <div class="match-score">${m.scoreA} - ${m.scoreB}</div>
+        <div class="match-team right ${winB ? 'win' : 'lose'}">
+          <span>${b?.name || '?'}</span>
+        </div>
+      </div>
+    </div>`;
+}
+
 function setupFilters() {
   ['searchSchedule','filterGroup','filterStatus'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', renderSchedule);
+  });
+  ['searchResults','filterResultGroup','filterResultStage'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', renderResults);
   });
   document.getElementById('searchTeams')?.addEventListener('input', renderTeams);
 }
 
 function populateGroupFilter() {
+  /* Filter Jadwal */
   const sel = document.getElementById('filterGroup');
-  if (!sel || sel.options.length > 1) return;
-  GROUPS.forEach(g => {
-    const o = document.createElement('option');
-    o.value = g; o.textContent = `Grup ${g}`;
-    sel.appendChild(o);
-  });
+  if (sel && sel.options.length <= 1) {
+    GROUPS.forEach(g => {
+      const o = document.createElement('option');
+      o.value = g; o.textContent = `Grup ${g}`;
+      sel.appendChild(o);
+    });
+  }
+
+  /* Filter Hasil - Grup */
+  const selR = document.getElementById('filterResultGroup');
+  if (selR && selR.options.length <= 1) {
+    GROUPS.forEach(g => {
+      const o = document.createElement('option');
+      o.value = g; o.textContent = `Grup ${g}`;
+      selR.appendChild(o);
+    });
+  }
 }
 
 /* ─── STANDINGS ─── */
@@ -464,21 +490,75 @@ function renderStandings() {
   }).join('');
 }
 
-/* ─── RESULTS ─── */
+/* ─── RESULTS — dengan filter search, grup, dan stage bracket ─── */
 function renderResults() {
   const wrap = document.getElementById('resultsList');
   if (!wrap) return;
-  const data = getData();
-  const tl   = getTimeline(data);
-  const list = data.matches.filter(m => m.played).slice(-30).reverse();
-  if (!list.length) {
+  const data   = getData();
+  const tl     = getTimeline(data);
+  const br     = data.bracket;
+
+  const search = (document.getElementById('searchResults')?.value || '').toLowerCase();
+  const groupF = document.getElementById('filterResultGroup')?.value || '';
+  const stageF = document.getElementById('filterResultStage')?.value || '';
+
+  /* Stage mapping */
+  const stageLabels = {
+    r16: '16 Besar', qf: '8 Besar', sf: 'Semifinal', bronze: 'Perebutan Juara 3', final: 'Grand Final'
+  };
+
+  let html = '';
+  let totalShown = 0;
+
+  /* ── Grup (hanya jika stage kosong atau 'group') ── */
+  if (!stageF || stageF === 'group') {
+    let groupMatches = data.matches.filter(m => m.played);
+    if (groupF) groupMatches = groupMatches.filter(m => m.group === groupF);
+    if (search) {
+      groupMatches = groupMatches.filter(m => {
+        const a = teamById(m.teamA, data)?.name.toLowerCase() || '';
+        const b = teamById(m.teamB, data)?.name.toLowerCase() || '';
+        return a.includes(search) || b.includes(search);
+      });
+    }
+    groupMatches = groupMatches.slice(-50).reverse();
+    if (groupMatches.length) {
+      html += groupMatches.map(m => matchCardHtml(m, data, tl, true)).join('');
+      totalShown += groupMatches.length;
+    }
+  }
+
+  /* ── Bracket stages (hanya jika tidak filter grup spesifik) ── */
+  if (!groupF && br) {
+    const stages = ['r16','qf','sf','bronze','final'];
+    stages.forEach(stage => {
+      if (stageF && stageF !== 'bracket' && stageF !== stage) return;
+      const matches = br[stage] || [];
+      let played = matches.filter(m => m.played);
+      if (search) {
+        played = played.filter(m => {
+          const a = teamById(m.teamA, data)?.name.toLowerCase() || '';
+          const b = teamById(m.teamB, data)?.name.toLowerCase() || '';
+          return a.includes(search) || b.includes(search);
+        });
+      }
+      if (played.length) {
+        played.forEach(m => {
+          html += bracketResultCardHtml(m, data, stageLabels[stage]);
+        });
+        totalShown += played.length;
+      }
+    });
+  }
+
+  if (!totalShown) {
     wrap.innerHTML = emptyState('📭','Belum ada hasil','Hasil pertandingan akan muncul di sini.');
     return;
   }
-  wrap.innerHTML = list.map(m => matchCardHtml(m, data, tl)).join('');
+  wrap.innerHTML = html;
 }
 
-/* ─── BRACKET (Public view — left-to-right linear) ─── */
+/* ─── BRACKET — tampilan visual keren ─── */
 function renderBracket(elementId) {
   const wrap = document.getElementById(elementId);
   if (!wrap) return;
@@ -495,11 +575,11 @@ function renderBracket(elementId) {
   }
 
   wrap.innerHTML = `
-    ${roundColHtml('16 Besar',         br.r16,    data)}
-    ${roundColHtml('Quarter Final',    br.qf,     data)}
-    ${roundColHtml('Semi Final',       br.sf,     data)}
-    ${roundColHtml('Perebutan Juara 3',br.bronze, data)}
-    ${roundColHtml('Grand Final',      br.final,  data, true)}
+    ${roundColHtml('⚡ 16 Besar',         br.r16,    data)}
+    ${roundColHtml('🔥 8 Besar',           br.qf,     data)}
+    ${roundColHtml('🏅 Semifinal',         br.sf,     data)}
+    ${roundColHtml('🥉 Juara 3',           br.bronze, data)}
+    ${roundColHtml('🏆 Grand Final',       br.final,  data, true)}
   `;
 }
 
@@ -517,17 +597,29 @@ function bracketMatchPublicHtml(m, idx, data, isFinal = false) {
   const winA = m.winner && m.winner === m.teamA;
   const winB = m.winner && m.winner === m.teamB;
 
+  /* Indikator glow jika ada winner */
+  const glowClass = m.winner ? 'bracket-match--done' : '';
+  const finalClass = isFinal ? 'final' : '';
+
   return `
-    <div class="bracket-match ${isFinal ? 'final' : ''}">
-      <span class="bm-tag">Match ${idx} • BO3</span>
+    <div class="bracket-match ${finalClass} ${glowClass}">
+      <span class="bm-tag">M${idx} • BO3</span>
       <div class="bm-row ${winA ? 'win' : (m.winner ? 'lose' : '')}">
-        <div class="bm-team"><span>${a?.name || 'TBD'}</span></div>
-        <div class="bm-score">${m.played ? m.scoreA : '-'}</div>
+        <div class="bm-team">
+          ${a ? `<div class="bm-logo">${a.tag?.[0] || '?'}</div>` : '<div class="bm-logo tbd">?</div>'}
+          <span>${a?.name || 'TBD'}</span>
+        </div>
+        <div class="bm-score ${winA ? 'bm-score--win' : ''}">${m.played ? m.scoreA : '-'}</div>
       </div>
+      <div class="bm-divider"></div>
       <div class="bm-row ${winB ? 'win' : (m.winner ? 'lose' : '')}">
-        <div class="bm-team"><span>${b?.name || 'TBD'}</span></div>
-        <div class="bm-score">${m.played ? m.scoreB : '-'}</div>
+        <div class="bm-team">
+          ${b ? `<div class="bm-logo">${b.tag?.[0] || '?'}</div>` : '<div class="bm-logo tbd">?</div>'}
+          <span>${b?.name || 'TBD'}</span>
+        </div>
+        <div class="bm-score ${winB ? 'bm-score--win' : ''}">${m.played ? m.scoreB : '-'}</div>
       </div>
+      ${m.winner ? `<div class="bm-winner-bar"></div>` : ''}
     </div>`;
 }
 
@@ -553,26 +645,76 @@ function renderTeams() {
   `).join('');
 }
 
-/* ─── STATS ─── */
+/* ─── STATS — podium keren jika turnamen selesai ─── */
 function renderStats() {
   const wrap = document.getElementById('statsCards');
   if (!wrap) return;
   const data        = getData();
-  const totalM      = data.matches.length;
-  const played      = data.matches.filter(m => m.played).length;
-  const champ       = data.bracket?.final?.[0]?.winner
-                      ? teamById(data.bracket.final[0].winner, data) : null;
-  const bronze3rd   = data.bracket?.bronze?.[0]?.winner
-                      ? teamById(data.bracket.bronze[0].winner, data) : null;
+  const br          = data.bracket;
+  const finalMatch  = br?.final?.[0];
+  const bronzeMatch = br?.bronze?.[0];
 
-  wrap.innerHTML = `
+  const champ   = finalMatch?.winner  ? teamById(finalMatch.winner, data) : null;
+  const runner  = finalMatch?.winner  ? teamById(
+    finalMatch.winner === finalMatch.teamA ? finalMatch.teamB : finalMatch.teamA, data
+  ) : null;
+  const bronze3 = bronzeMatch?.winner ? teamById(bronzeMatch.winner, data) : null;
+
+  const totalM  = data.matches.length;
+  const played  = data.matches.filter(m => m.played).length;
+
+  /* Jika turnamen sudah selesai (ada juara), tampilkan podium */
+  if (champ) {
+    wrap.innerHTML = `
+      <div class="podium-section" style="grid-column:1/-1">
+        <div class="podium-title">🏆 HASIL AKHIR TURNAMEN</div>
+        <div class="podium-wrap">
+          <!-- Juara 2 -->
+          <div class="podium-slot podium-2">
+            <div class="podium-crown">🥈</div>
+            <div class="podium-name">${runner?.name || '—'}</div>
+            <div class="podium-label">Runner Up</div>
+            <div class="podium-block podium-block--2">
+              <span class="podium-pos">2</span>
+            </div>
+          </div>
+          <!-- Juara 1 -->
+          <div class="podium-slot podium-1">
+            <div class="podium-sparkles">✦ ✦ ✦</div>
+            <div class="podium-crown">👑</div>
+            <div class="podium-name podium-name--champ">${champ?.name || '—'}</div>
+            <div class="podium-label podium-label--champ">🏆 JUARA 1</div>
+            <div class="podium-block podium-block--1">
+              <span class="podium-pos">1</span>
+            </div>
+          </div>
+          <!-- Juara 3 -->
+          <div class="podium-slot podium-3">
+            <div class="podium-crown">🥉</div>
+            <div class="podium-name">${bronze3?.name || '—'}</div>
+            <div class="podium-label">Juara 3</div>
+            <div class="podium-block podium-block--3">
+              <span class="podium-pos">3</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /* Stat cards selalu tampil */
+  const statsHtml = `
     ${statCard('Tim Peserta',   data.teams.length)}
     ${statCard('Total Match',   totalM)}
     ${statCard('Match Selesai', played)}
     ${statCard('Progres',       totalM ? Math.round(played/totalM*100)+'%' : '0%')}
-    ${statCard('Juara 🏆',      champ   ? champ.name   : '—')}
-    ${statCard('Juara 3 🥉',    bronze3rd ? bronze3rd.name : '—')}
   `;
+
+  if (champ) {
+    wrap.innerHTML += `<div class="stats-sub-grid">${statsHtml}</div>`;
+  } else {
+    wrap.innerHTML = statsHtml;
+  }
 
   const top = document.getElementById('topTeams');
   if (top) {
@@ -602,16 +744,48 @@ function setupReveal() {
 function startCountdown() {
   const cd = document.getElementById('countdown');
   if (!cd) return;
-  const data   = getData();
-  const tl     = getTimeline(data);
-  const finalEntry = tl.find(t => t.id === 'final');
-  /* Gunakan tanggal final dari timeline, fallback ke grandFinalDate */
-  const target = finalEntry?.date
-    ? new Date(finalEntry.date + 'T19:00:00').getTime()
-    : new Date(data.grandFinalDate).getTime();
+
+  /* Cari tahap berikutnya yang belum dimulai (tanggalnya >= hari ini) */
+  function getNextStage() {
+    const data = getData();
+    const tl   = getTimeline(data);
+    const now  = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const sorted = tl
+      .filter(t => t.date)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    const next = sorted.find(t => {
+      const d = new Date(t.date + 'T00:00:00');
+      return d >= today;
+    });
+
+    if (next) {
+      return {
+        label : next.label,
+        target: new Date(next.date + 'T19:00:00').getTime(),
+      };
+    }
+
+    return { label: 'Turnamen Selesai', target: null };
+  }
+
+  const labelEl = document.querySelector('.cd-label');
 
   const tick = () => {
-    const diff  = Math.max(0, target - Date.now());
+    const stage = getNextStage();
+
+    if (labelEl) labelEl.textContent = stage.target ? 'Menuju ' + stage.label : '🏆 Turnamen Telah Selesai';
+
+    if (!stage.target) {
+      ['cd-days','cd-hours','cd-mins','cd-secs'].forEach(id => {
+        document.getElementById(id).textContent = '00';
+      });
+      return;
+    }
+
+    const diff  = Math.max(0, stage.target - Date.now());
     const days  = Math.floor(diff / 86400000);
     const hours = Math.floor((diff % 86400000) / 3600000);
     const mins  = Math.floor((diff % 3600000) / 60000);
@@ -621,6 +795,7 @@ function startCountdown() {
     document.getElementById('cd-mins').textContent  = String(mins).padStart(2,'0');
     document.getElementById('cd-secs').textContent  = String(secs).padStart(2,'0');
   };
+
   tick();
   setInterval(tick, 1000);
 }
