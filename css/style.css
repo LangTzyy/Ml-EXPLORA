@@ -4,7 +4,7 @@
    Modern Typography with Glow Effects
    =========================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Space+Grotesk:wght@400;500;600;700&display=swap");
 
 :root {
   /* Black & Blue Color Palette */
@@ -14,7 +14,7 @@
   --bg-black-4: #151a24;
   --bg-card: rgba(15, 17, 24, 0.85);
   --bg-card-solid: #0f1118;
-  
+
   /* Blue Accents */
   --blue-primary: #0066ff;
   --blue-vibrant: #0088ff;
@@ -24,24 +24,24 @@
   --blue-glow: rgba(0, 102, 255, 0.3);
   --blue-glow-strong: rgba(0, 102, 255, 0.5);
   --blue-glow-electric: rgba(0, 212, 255, 0.4);
-  
+
   /* Text Colors */
   --text-primary: #ffffff;
   --text-secondary: #b8c5e6;
   --text-tertiary: #7a85b0;
   --text-muted: #4a5578;
-  
+
   /* Borders */
   --border: rgba(0, 102, 255, 0.2);
   --border-light: rgba(0, 102, 255, 0.1);
   --border-glow: rgba(0, 102, 255, 0.4);
-  
+
   /* Status Colors */
   --success: #00ff88;
   --danger: #ff3366;
   --warning: #ffcc00;
   --info: #00a3ff;
-  
+
   /* Shadows & Glows */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
@@ -51,29 +51,44 @@
   --shadow-blue: 0 0 30px rgba(0, 102, 255, 0.3);
   --shadow-blue-strong: 0 0 50px rgba(0, 102, 255, 0.5);
   --shadow-neon: 0 0 20px rgba(0, 212, 255, 0.4);
-  
+
   /* Gradients - Black & Blue */
-  --gradient-dark: linear-gradient(135deg, #050608 0%, #0a0c12 50%, #0f1118 100%);
-  --gradient-blue: linear-gradient(135deg, #0066ff 0%, #00a3ff 50%, #00d4ff 100%);
+  --gradient-dark: linear-gradient(
+    135deg,
+    #050608 0%,
+    #0a0c12 50%,
+    #0f1118 100%
+  );
+  --gradient-blue: linear-gradient(
+    135deg,
+    #0066ff 0%,
+    #00a3ff 50%,
+    #00d4ff 100%
+  );
   --gradient-blue-dark: linear-gradient(135deg, #003399 0%, #0066ff 100%);
   --gradient-blue-glow: linear-gradient(135deg, #0066ff20 0%, #00d4ff10 100%);
-  --gradient-card: linear-gradient(135deg, rgba(15, 17, 24, 0.95) 0%, rgba(21, 26, 36, 0.85) 100%);
+  --gradient-card: linear-gradient(
+    135deg,
+    rgba(15, 17, 24, 0.95) 0%,
+    rgba(21, 26, 36, 0.85) 100%
+  );
   --gradient-border: linear-gradient(135deg, #0066ff 0%, #00d4ff 100%);
-  
+
   /* Radius */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
   --radius-2xl: 32px;
-  
+
   /* Transitions */
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   /* Font Families */
-  --font-primary: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
-  --font-secondary: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-primary:
+    "Space Grotesk", "Inter", system-ui, -apple-system, sans-serif;
+  --font-secondary: "Inter", system-ui, -apple-system, sans-serif;
 }
 
 * {
@@ -99,37 +114,66 @@ body {
 
 /* ===== 3D BACKGROUND EFFECT ===== */
 body::before {
-  content: '';
+  content: "";
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: -2;
-  background: 
-    radial-gradient(circle at 20% 40%, rgba(0, 102, 255, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 80% 60%, rgba(0, 163, 255, 0.06) 0%, transparent 40%),
-    radial-gradient(circle at 40% 80%, rgba(0, 212, 255, 0.04) 0%, transparent 50%),
-    repeating-linear-gradient(45deg, rgba(0, 102, 255, 0.02) 0px, rgba(0, 102, 255, 0.02) 2px, transparent 2px, transparent 8px);
+  background:
+    radial-gradient(
+      circle at 20% 40%,
+      rgba(0, 102, 255, 0.08) 0%,
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 80% 60%,
+      rgba(0, 163, 255, 0.06) 0%,
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 40% 80%,
+      rgba(0, 212, 255, 0.04) 0%,
+      transparent 50%
+    ),
+    repeating-linear-gradient(
+      45deg,
+      rgba(0, 102, 255, 0.02) 0px,
+      rgba(0, 102, 255, 0.02) 2px,
+      transparent 2px,
+      transparent 8px
+    );
   animation: backgroundShift 20s ease-in-out infinite;
 }
 
 body::after {
-  content: '';
+  content: "";
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: -1;
-  background: 
-    radial-gradient(ellipse at 50% 50%, rgba(0, 102, 255, 0.05) 0%, transparent 60%),
-    repeating-linear-gradient(0deg, rgba(0, 102, 255, 0.03) 0px, rgba(0, 102, 255, 0.03) 1px, transparent 1px, transparent 4px);
+  background:
+    radial-gradient(
+      ellipse at 50% 50%,
+      rgba(0, 102, 255, 0.05) 0%,
+      transparent 60%
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 102, 255, 0.03) 0px,
+      rgba(0, 102, 255, 0.03) 1px,
+      transparent 1px,
+      transparent 4px
+    );
   backdrop-filter: blur(0px);
 }
 
 @keyframes backgroundShift {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1) translate(0, 0);
     opacity: 0.8;
   }
@@ -147,7 +191,7 @@ body::after {
 }
 
 .floating-3d::before {
-  content: '◈';
+  content: "◈";
   position: absolute;
   font-size: 60px;
   color: rgba(0, 102, 255, 0.08);
@@ -155,7 +199,8 @@ body::after {
 }
 
 @keyframes float3d {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate3d(0, 0, 0) rotate(0deg);
   }
   25% {
@@ -170,7 +215,12 @@ body::after {
 }
 
 /* ===== TYPOGRAPHY PREMIUM ===== */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-primary);
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -212,7 +262,7 @@ h4 {
 }
 
 .gradient-text::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -4px;
   left: 0;
@@ -267,7 +317,7 @@ h4 {
 }
 
 .nav-link::before {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 50%;
@@ -347,7 +397,7 @@ h4 {
   .hamburger {
     display: flex;
   }
-  
+
   .nav-links {
     position: absolute;
     top: 80px;
@@ -365,17 +415,17 @@ h4 {
     pointer-events: none;
     transition: var(--transition);
   }
-  
+
   .nav-links.open {
     transform: translateY(0);
     opacity: 1;
     pointer-events: auto;
   }
-  
+
   .nav-link {
     padding: 14px 20px;
   }
-  
+
   .nav-link.admin-btn {
     margin: 8px 0 0;
     text-align: center;
@@ -403,7 +453,7 @@ h4 {
 }
 
 .section-head h2::before {
-  content: '✦';
+  content: "✦";
   position: absolute;
   left: -40px;
   top: 50%;
@@ -414,7 +464,7 @@ h4 {
 }
 
 .section-head h2::after {
-  content: '✦';
+  content: "✦";
   position: absolute;
   right: -40px;
   top: 50%;
@@ -446,9 +496,17 @@ h4 {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: 
-    radial-gradient(ellipse at 30% 40%, rgba(0, 102, 255, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 70% 60%, rgba(0, 163, 255, 0.1) 0%, transparent 50%),
+  background:
+    radial-gradient(
+      ellipse at 30% 40%,
+      rgba(0, 102, 255, 0.15) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 70% 60%,
+      rgba(0, 163, 255, 0.1) 0%,
+      transparent 50%
+    ),
     url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" opacity="0.05"><path fill="none" stroke="%230066ff" stroke-width="0.5" d="M10,10 L90,10 M10,30 L90,30 M10,50 L90,50 M10,70 L90,70 M10,90 L90,90 M10,10 L10,90 M30,10 L30,90 M50,10 L50,90 M70,10 L70,90 M90,10 L90,90"/></svg>');
   background-size: 60px 60px;
   animation: gridMove 20s linear infinite;
@@ -486,7 +544,8 @@ h4 {
 }
 
 @keyframes pulseGlow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(0, 102, 255, 0.4);
   }
   50% {
@@ -540,13 +599,18 @@ h4 {
 }
 
 .btn::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
   transition: left 0.5s ease;
 }
 
@@ -619,7 +683,7 @@ h4 {
 }
 
 .cd-item::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -669,7 +733,8 @@ h4 {
 }
 
 /* ===== INPUTS PREMIUM ===== */
-.input, select.input {
+.input,
+select.input {
   width: 100%;
   background: var(--bg-card);
   backdrop-filter: blur(10px);
@@ -718,7 +783,7 @@ h4 {
 }
 
 .card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -767,7 +832,7 @@ h4 {
 }
 
 .match-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -790,7 +855,11 @@ h4 {
 
 .match-card.today {
   border-left: 3px solid var(--blue-electric);
-  background: linear-gradient(135deg, rgba(0, 102, 255, 0.1), rgba(0, 163, 255, 0.05));
+  background: linear-gradient(
+    135deg,
+    rgba(0, 102, 255, 0.1),
+    rgba(0, 163, 255, 0.05)
+  );
 }
 
 .match-meta {
@@ -868,10 +937,14 @@ h4 {
 }
 
 .team-logo::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
   transform: translateX(-100%);
   transition: transform 0.5s ease;
 }
@@ -1027,7 +1100,11 @@ h4 {
 
 .bracket-match.final {
   border: 2px solid var(--blue-electric);
-  background: linear-gradient(135deg, rgba(0, 102, 255, 0.15), rgba(0, 163, 255, 0.05));
+  background: linear-gradient(
+    135deg,
+    rgba(0, 102, 255, 0.15),
+    rgba(0, 163, 255, 0.05)
+  );
   box-shadow: var(--shadow-blue-strong);
 }
 
@@ -1109,7 +1186,7 @@ h4 {
 }
 
 .team-card::before {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 0;
@@ -1188,7 +1265,7 @@ h4 {
 }
 
 .stat-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -1210,7 +1287,7 @@ h4 {
 }
 
 .stat-card::after {
-  content: '◈';
+  content: "◈";
   position: absolute;
   bottom: 10px;
   right: 15px;
@@ -1430,7 +1507,9 @@ h4 {
 .reveal {
   opacity: 0;
   transform: translateY(30px);
-  transition: opacity 0.8s ease, transform 0.8s ease;
+  transition:
+    opacity 0.8s ease,
+    transform 0.8s ease;
 }
 
 .reveal.visible {
@@ -1481,9 +1560,15 @@ h4 {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 
-  h1 { font-size: 2.5rem; }
-  h2 { font-size: 2rem; }
-  h3 { font-size: 1.5rem; }
+  h1 {
+    font-size: 2.5rem;
+  }
+  h2 {
+    font-size: 2rem;
+  }
+  h3 {
+    font-size: 1.5rem;
+  }
 }
 
 /* ===== RESPONSIVE — MOBILE LANDSCAPE / TABLET SMALL (max 900px) ===== */
@@ -1535,10 +1620,18 @@ h4 {
 
 /* ===== RESPONSIVE — MOBILE (max 768px) ===== */
 @media (max-width: 768px) {
-  h1 { font-size: 2rem; }
-  h2 { font-size: 1.75rem; }
-  h3 { font-size: 1.35rem; }
-  h4 { font-size: 1.1rem; }
+  h1 {
+    font-size: 2rem;
+  }
+  h2 {
+    font-size: 1.75rem;
+  }
+  h3 {
+    font-size: 1.35rem;
+  }
+  h4 {
+    font-size: 1.1rem;
+  }
 
   .nav-inner {
     padding: 0 16px;
@@ -1716,8 +1809,12 @@ h4 {
 
 /* ===== RESPONSIVE — SMALL MOBILE (max 480px) ===== */
 @media (max-width: 480px) {
-  h1 { font-size: 1.75rem; }
-  h2 { font-size: 1.5rem; }
+  h1 {
+    font-size: 1.75rem;
+  }
+  h2 {
+    font-size: 1.5rem;
+  }
 
   .hero {
     padding: 60px 14px 40px;
@@ -1923,11 +2020,18 @@ h4 {
 }
 
 .bracket-match::before {
-  content: '';
+  content: "";
   position: absolute;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--blue-primary), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--blue-primary),
+    transparent
+  );
   opacity: 0;
   transition: opacity 0.3s;
 }
@@ -1944,18 +2048,32 @@ h4 {
 
 .bracket-match.final {
   border: 1px solid rgba(0, 212, 255, 0.4);
-  background: linear-gradient(135deg, rgba(0, 20, 60, 0.95), rgba(0, 10, 30, 0.95));
+  background: linear-gradient(
+    135deg,
+    rgba(0, 20, 60, 0.95),
+    rgba(0, 10, 30, 0.95)
+  );
 }
 
 .bracket-match.final::before {
   opacity: 1;
-  background: linear-gradient(90deg, transparent, var(--blue-neon), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--blue-neon),
+    transparent
+  );
   animation: finalShimmer 3s ease-in-out infinite;
 }
 
 @keyframes finalShimmer {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .bracket-match--done {
@@ -2036,7 +2154,7 @@ h4 {
 }
 
 .bm-logo.tbd {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-muted);
   border: 1px dashed var(--border);
 }
@@ -2050,7 +2168,7 @@ h4 {
   color: var(--text-secondary);
   padding: 4px 8px;
   border-radius: 6px;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .bm-score--win {
@@ -2094,7 +2212,7 @@ h4 {
 
 .podium-title::before,
 .podium-title::after {
-  content: '──────';
+  content: "──────";
   color: var(--border-glow);
   margin: 0 16px;
   font-weight: 300;
@@ -2122,8 +2240,12 @@ h4 {
   order: 2;
   z-index: 2;
 }
-.podium-2 { order: 1; }
-.podium-3 { order: 3; }
+.podium-2 {
+  order: 1;
+}
+.podium-3 {
+  order: 3;
+}
 
 .podium-sparkles {
   font-size: 0.8rem;
@@ -2134,8 +2256,15 @@ h4 {
 }
 
 @keyframes sparkle {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50%       { opacity: 1;   transform: scale(1.1); }
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
 }
 
 .podium-crown {
@@ -2143,11 +2272,18 @@ h4 {
   animation: crownFloat 3s ease-in-out infinite;
 }
 
-.podium-1 .podium-crown { font-size: 2.5rem; }
+.podium-1 .podium-crown {
+  font-size: 2.5rem;
+}
 
 @keyframes crownFloat {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-6px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
 
 .podium-name {
@@ -2160,7 +2296,7 @@ h4 {
   line-height: 1.3;
   padding: 6px 12px;
   border-radius: var(--radius-sm);
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-light);
 }
 
@@ -2175,8 +2311,13 @@ h4 {
 }
 
 @keyframes champNameGlow {
-  0%, 100% { box-shadow: 0 0 12px rgba(0,102,255,0.15); }
-  50%       { box-shadow: 0 0 28px rgba(0,212,255,0.35); }
+  0%,
+  100% {
+    box-shadow: 0 0 12px rgba(0, 102, 255, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(0, 212, 255, 0.35);
+  }
 }
 
 .podium-label {
@@ -2203,24 +2344,38 @@ h4 {
 
 .podium-block--1 {
   height: 100px;
-  background: linear-gradient(180deg, rgba(0,102,255,0.25) 0%, rgba(0,50,180,0.15) 100%);
-  border: 1px solid rgba(0,212,255,0.3);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 102, 255, 0.25) 0%,
+    rgba(0, 50, 180, 0.15) 100%
+  );
+  border: 1px solid rgba(0, 212, 255, 0.3);
   border-bottom: none;
-  box-shadow: 0 -4px 20px rgba(0,102,255,0.2), inset 0 0 20px rgba(0,102,255,0.05);
+  box-shadow:
+    0 -4px 20px rgba(0, 102, 255, 0.2),
+    inset 0 0 20px rgba(0, 102, 255, 0.05);
   width: 150px;
 }
 
 .podium-block--2 {
   height: 70px;
-  background: linear-gradient(180deg, rgba(100,100,120,0.2) 0%, rgba(60,60,80,0.1) 100%);
-  border: 1px solid rgba(150,150,180,0.2);
+  background: linear-gradient(
+    180deg,
+    rgba(100, 100, 120, 0.2) 0%,
+    rgba(60, 60, 80, 0.1) 100%
+  );
+  border: 1px solid rgba(150, 150, 180, 0.2);
   border-bottom: none;
 }
 
 .podium-block--3 {
   height: 50px;
-  background: linear-gradient(180deg, rgba(100,60,20,0.2) 0%, rgba(80,40,10,0.1) 100%);
-  border: 1px solid rgba(180,120,60,0.2);
+  background: linear-gradient(
+    180deg,
+    rgba(100, 60, 20, 0.2) 0%,
+    rgba(80, 40, 10, 0.1) 100%
+  );
+  border: 1px solid rgba(180, 120, 60, 0.2);
   border-bottom: none;
 }
 
@@ -2231,7 +2386,9 @@ h4 {
   opacity: 0.2;
 }
 
-.podium-block--1 .podium-pos { font-size: 2.5rem; }
+.podium-block--1 .podium-pos {
+  font-size: 2.5rem;
+}
 
 /* Stats sub grid setelah podium */
 .stats-sub-grid {
@@ -2243,11 +2400,29 @@ h4 {
 
 /* ===== RESPONSIVE PODIUM ===== */
 @media (max-width: 600px) {
-  .podium-name { font-size: 0.82rem; max-width: 100px; padding: 5px 10px; }
-  .podium-name--champ { font-size: 0.95rem; max-width: 120px; }
-  .podium-block--1 { width: 110px; height: 80px; }
-  .podium-block--2 { width: 90px; height: 56px; }
-  .podium-block--3 { width: 90px; height: 40px; }
+  .podium-name {
+    font-size: 0.82rem;
+    max-width: 100px;
+    padding: 5px 10px;
+  }
+  .podium-name--champ {
+    font-size: 0.95rem;
+    max-width: 120px;
+  }
+  .podium-block--1 {
+    width: 110px;
+    height: 80px;
+  }
+  .podium-block--2 {
+    width: 90px;
+    height: 56px;
+  }
+  .podium-block--3 {
+    width: 90px;
+    height: 40px;
+  }
   .podium-title::before,
-  .podium-title::after { display: none; }
+  .podium-title::after {
+    display: none;
+  }
 }
