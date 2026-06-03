@@ -13,19 +13,19 @@ document.addEventListener("DOMContentLoaded", () => {
   initAdmin();
 });
 
-function initAdmin() {
+async function initAdmin() {
   if (sessionStorage.getItem(AUTH_KEY) === "1") {
-    showShell();
+    await showShell();
   }
 
-  document.getElementById("loginForm").addEventListener("submit", (e) => {
+  document.getElementById("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const u = document.getElementById("loginUser").value.trim();
     const p = document.getElementById("loginPass").value;
-    const creds = getAdminCredentials();
-    if (u === creds.user && p === creds.pass) {
+    const ok = await verifyAdminLogin(u, p);
+    if (ok) {
       sessionStorage.setItem(AUTH_KEY, "1");
-      showShell();
+      await showShell();
       toast("Login berhasil. Selamat datang, Admin!", "success");
     } else {
       toast("Username atau password salah", "error");
@@ -140,7 +140,7 @@ function initAdmin() {
   document
     .getElementById("teamSearchInput")
     ?.addEventListener("input", () => renderAdminTeams());
-  initSettingsOnLoad();
+  await initSettingsOnLoad();
 }
 
 /* ── UI swap mode ── */
@@ -163,9 +163,12 @@ function updateSwapModeUI() {
   }
 }
 
-function showShell() {
+async function showShell() {
   document.getElementById("loginOverlay").classList.add("hidden");
   document.getElementById("adminShell").classList.remove("hidden");
+  document.getElementById("tabTitle").textContent = "⏳ Memuat data...";
+  await initData();
+  document.getElementById("tabTitle").textContent = "Dashboard";
   renderAdmin();
 }
 
@@ -203,7 +206,7 @@ function renderAdmin() {
   renderUpcomingMini();
   renderTimelineEditor();
   renderAdminStandings();
-  renderSettingsTab();
+  renderSettingsTab().catch(console.error);
 }
 
 /* ============ STATS ============ */
@@ -1367,49 +1370,6 @@ function generateBracket() {
   switchTab("playoff");
 }
 
-window.advanceBracket = function (data) {
-  const br = data.bracket;
-
-  if (br.r16 && br.qf) {
-    for (let i = 0; i < br.qf.length; i++) {
-      const m1 = br.r16[i * 2];
-      const m2 = br.r16[i * 2 + 1];
-      if (m1?.winner) br.qf[i].teamA = m1.winner;
-      if (m2?.winner) br.qf[i].teamB = m2.winner;
-    }
-  }
-
-  if (br.qf && br.sf) {
-    for (let i = 0; i < br.sf.length; i++) {
-      const m1 = br.qf[i * 2];
-      const m2 = br.qf[i * 2 + 1];
-      if (m1?.winner) br.sf[i].teamA = m1.winner;
-      if (m2?.winner) br.sf[i].teamB = m2.winner;
-    }
-  }
-
-  if (br.sf && br.final && br.bronze) {
-    const sf1 = br.sf[0];
-    const sf2 = br.sf[1];
-
-    if (sf1?.winner) br.final[0].teamA = sf1.winner;
-    if (sf2?.winner) br.final[0].teamB = sf2.winner;
-
-    const sf1Loser = sf1?.winner
-      ? sf1.winner === sf1.teamA
-        ? sf1.teamB
-        : sf1.teamA
-      : null;
-    const sf2Loser = sf2?.winner
-      ? sf2.winner === sf2.teamA
-        ? sf2.teamB
-        : sf2.teamA
-      : null;
-    if (sf1Loser) br.bronze[0].teamA = sf1Loser;
-    if (sf2Loser) br.bronze[0].teamB = sf2Loser;
-  }
-};
-
 /* ============ TIMELINE ============ */
 function getTimeline(data) {
   return data?.timeline || DEFAULT_TIMELINE;
@@ -1507,15 +1467,13 @@ function saveTimeline() {
 }
 
 /* ============ RESET & SIMULATE ============ */
+// JADI ini:
 function resetAll() {
-  if (!confirm("Reset SEMUA data turnamen? Aksi ini tidak bisa dibatalkan."))
-    return;
-  localStorage.removeItem(STORAGE_KEY);
+  if (!confirm("Reset SEMUA data turnamen? Aksi ini tidak bisa dibatalkan.")) return;
   const emptyData = {
-    teams: [],
-    matches: [],
-    bracket: {},
-    timeline: DEFAULT_TIMELINE,
+    teams: [], matches: [],
+    bracket: { r16:[], qf:[], sf:[], bronze:[], final:[] },
+    timeline: DEFAULT_TIMELINE.map(t => ({...t}))
   };
   saveData(emptyData);
   renderAdmin();
@@ -2335,7 +2293,7 @@ window.confirmImportTeams = function (entries) {
     logoColor: LOGO_COLORS[i % LOGO_COLORS.length],
   }));
   data.matches = [];
-  data.bracket = {};
+  data.bracket = { r16: [], qf: [], sf: [], bronze: [], final: [] };
 
   saveData(data);
   closeModal();
@@ -2359,20 +2317,6 @@ window.closeModal = function () {
 };
 
 /* ============ SETTINGS ============ */
-function getAdminCredentials() {
-  try {
-    const saved = localStorage.getItem("mlwc_admin_credentials");
-    if (saved) return JSON.parse(saved);
-  } catch (e) {}
-  return { user: "admin", pass: "admin123" };
-}
-
-function saveAdminCredentials(user, pass) {
-  localStorage.setItem(
-    "mlwc_admin_credentials",
-    JSON.stringify({ user, pass }),
-  );
-}
 
 function getSettings() {
   try {
@@ -2402,15 +2346,17 @@ function applyLogo(dataUrl) {
   if (sidebarLogo) sidebarLogo.src = dataUrl;
 }
 
-function initSettingsOnLoad() {
-  const settings = getSettings();
+async function initSettingsOnLoad() {
+  const settings = await getSettingsAsync();
+  saveSettingsToStorage(settings); // cache lokal
   applyTournamentName(settings.tournamentName);
   if (settings.logoDataUrl) applyLogo(settings.logoDataUrl);
 }
 
-function renderSettingsTab() {
-  const settings = getSettings();
-  const creds = getAdminCredentials();
+async function renderSettingsTab() {
+  const settings = await getSettingsAsync();
+  saveSettingsToStorage(settings);
+  const creds = await getAdminCredentialsAsync();
 
   const nameInput = document.getElementById("settingTournamentName");
   if (nameInput) nameInput.value = settings.tournamentName || "EXPLORA";
@@ -2499,28 +2445,25 @@ window.removeLogo = function () {
   if (logoArea) logoArea.dataset.pendingLogo = "";
 };
 
-function saveSettings() {
+async function saveSettings() {
   const settings = getSettings();
   const nameInput = document.getElementById("settingTournamentName");
   if (nameInput) settings.tournamentName = nameInput.value.trim() || "EXPLORA";
-
   const logoArea = document.getElementById("logoUploadArea");
   if (logoArea && logoArea.dataset.pendingLogo !== undefined) {
     settings.logoDataUrl = logoArea.dataset.pendingLogo;
   }
-
   const maxDisplay = document.getElementById("maxTeamsDisplay");
-  if (maxDisplay)
-    settings.maxTeamsPerGroup = parseInt(maxDisplay.textContent) || 4;
-
-  saveSettingsToStorage(settings);
+  if (maxDisplay) settings.maxTeamsPerGroup = parseInt(maxDisplay.textContent) || 4;
+  saveSettingsToStorage(settings);         // tetap simpan lokal sebagai cache
+  await saveSettingsAsync(settings);       // simpan ke Firestore
   applyTournamentName(settings.tournamentName);
   applyLogo(settings.logoDataUrl);
   toast("Pengaturan berhasil disimpan ✅", "success");
 }
 
-function openChangePassModal() {
-  const creds = getAdminCredentials();
+async function openChangePassModal() {
+  const creds = await getAdminCredentialsAsync();
   openModal(
     "🔐 Ganti Username & Password",
     `
@@ -2542,29 +2485,18 @@ function openChangePassModal() {
   );
 }
 
-window.saveAdminPass = function () {
-  const creds = getAdminCredentials();
+window.saveAdminPass = async function () {
+  const creds = await getAdminCredentialsAsync();
   const newUser = document.getElementById("newAdminUser").value.trim();
   const oldPass = document.getElementById("oldAdminPass").value;
   const newPass = document.getElementById("newAdminPass").value;
   const confirmPass = document.getElementById("confirmAdminPass").value;
-  if (!newUser) {
-    toast("Username tidak boleh kosong", "error");
-    return;
-  }
-  if (oldPass !== creds.pass) {
-    toast("Password lama salah", "error");
-    return;
-  }
-  if (newPass.length < 6) {
-    toast("Password baru minimal 6 karakter", "error");
-    return;
-  }
-  if (newPass !== confirmPass) {
-    toast("Konfirmasi password tidak cocok", "error");
-    return;
-  }
-  saveAdminCredentials(newUser, newPass);
+  if (!newUser) { toast("Username tidak boleh kosong", "error"); return; }
+  const oldHash = await sha256(oldPass);
+  if (oldHash !== creds.passHash) { toast("Password lama salah", "error"); return; }
+  if (newPass.length < 6) { toast("Password baru minimal 6 karakter", "error"); return; }
+  if (newPass !== confirmPass) { toast("Konfirmasi password tidak cocok", "error"); return; }
+  await saveAdminCredentialsAsync(newUser, newPass);
   const userDisplay = document.getElementById("currentUserDisplay");
   if (userDisplay) userDisplay.textContent = newUser;
   closeModal();
