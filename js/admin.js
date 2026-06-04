@@ -288,7 +288,7 @@ function renderUpcomingMini() {
   const list = data.matches.filter((m) => !m.played).slice(0, 6);
   if (!list.length && !data.bracket?.r16?.length) {
     wrap.innerHTML =
-      '<div class="empty-state">📭 Belum ada pertandingan. Tambah tim dan generate jadwal.</div>';
+      '<div class="empty-state">📭 Belum ada pertandingan</div>';
     return;
   }
   if (!list.length) {
@@ -317,7 +317,7 @@ function renderAdminTeams() {
 
   if (!data.teams.length) {
     wrap.innerHTML =
-      '<div class="empty-state">👥 Belum ada tim. Klik "+ Tambah Tim" untuk menambahkan tim pertama.</div>';
+      '<div class="empty-state">👥 Belum ada tim.</div>';
     return;
   }
 
@@ -461,7 +461,7 @@ function renderAdminSchedule() {
     filteredMatches = data.matches.filter((m) => m.group === filterGroup);
   if (!filteredMatches.length) {
     wrap.innerHTML =
-      '<div class="empty-state">📅 Tidak ada jadwal. Tambah tim lalu generate jadwal.</div>';
+      '<div class="empty-state">📅 Tidak ada jadwal.</div>';
     return;
   }
   wrap.innerHTML = filteredMatches
@@ -472,9 +472,7 @@ function renderAdminSchedule() {
 
 function getMatchDate(match, data) {
   const timeline = getTimeline(data);
-  const groups = ["A", "B", "C", "D"];
-  const stage = groups.includes(match.group) ? "group-ad" : "group-eh";
-  const entry = timeline.find((t) => t.id === stage);
+  const entry = timeline.find((t) => t.id === "group");
   return entry ? formatDateID(entry.date) : "";
 }
 
@@ -643,7 +641,7 @@ function renderAdminResults() {
     filteredMatches = data.matches.filter((m) => m.group === filterGroup);
   if (!filteredMatches.length) {
     wrap.innerHTML =
-      '<div class="empty-state">⚽ Tidak ada pertandingan. Tambah tim dan generate jadwal terlebih dahulu.</div>';
+      '<div class="empty-state">⚽ Tidak ada pertandingan.</div>';
     return;
   }
   wrap.innerHTML = filteredMatches
@@ -809,7 +807,7 @@ window.openMoveTeamModal = function (group) {
   }
 
   const isBlock1 = ["A", "B", "C", "D"].includes(group);
-  const blockLabel = isBlock1 ? "Blok 1 · 6 Juni" : "Blok 2 · 7 Juni";
+  const blockLabel = isBlock1 ? "Blok 1 " : "Blok 2 ";
   const blockColor = isBlock1 ? "#3a9fff" : "#00c853";
 
   openModal(
@@ -1092,21 +1090,22 @@ function bracketMatchHtml(m, data, key, extraClass = "") {
   const bWin = m.winner && m.winner === m.teamB;
 
   const getLabel = () => {
-    if (key.startsWith("r16")) return "R16";
-    if (key.startsWith("qf")) return "QF";
-    if (key.startsWith("sf")) return "SF";
+    if (key.startsWith("r16")) return "Round Of 16";
+    if (key.startsWith("qf")) return "Quarter Final";
+    if (key.startsWith("sf")) return "Semi Final";
     if (key === "bronze") return "🥉 3rd Place";
     if (key === "final") return "🏆 Final";
     return "";
   };
 
-  // Tambahkan class khusus saat swap mode aktif
   const editClass = swapModeActive ? "bracket-match-editable" : "";
+  const editBadge = swapModeActive
+    ? `<span class="bracket-edit-badge">✏️ Edit</span>`
+    : "";
 
   return `
     <div class="bracket-match ${extraClass} ${editClass}" data-matchid="${m.id}">
-      ${swapModeActive ? `<div class="bracket-edit-badge">✏️ Edit</div>` : ""}
-      <div class="bracket-match-label">${getLabel()}</div>
+      <div class="bracket-match-label">${getLabel()} ${editBadge}</div>
       <div class="bracket-match-team ${aWin ? "winner" : ""}">
         <span>${a?.name || (m.teamA ? "???" : "TBD")}</span>
         <span>${m.played ? m.scoreA : "-"}</span>
@@ -1790,7 +1789,7 @@ function generateExportHTML(data, mode = "pdf") {
   for (const g of GROUPS) {
     if (!groups[g].length) continue;
     const isBlock1 = ["A", "B", "C", "D"].includes(g);
-    html += `<h3>Grup ${g} &nbsp;<small style="font-weight:normal;font-size:9pt;color:#888;">${isBlock1 ? "(Blok 1 · 6 Juni)" : "(Blok 2 · 7 Juni)"}</small></h3>
+    html += `<h3>Grup ${g} &nbsp;<small style="font-weight:normal;font-size:9pt;color:#888;">${isBlock1 ? "(Blok 1)" : "(Blok 2)"}</small></h3>
       <table class="standings-table">
         <thead><tr><th>#</th><th>Tim</th><th>Tag</th><th>M</th><th>W</th><th>D</th><th>L</th><th>Poin</th></tr></thead>
         <tbody>`;
@@ -1967,11 +1966,11 @@ function uniqueTag(tag, usedTags) {
 }
 
 /* ============================================================
-   PATCH v4: autoAssignGroups — Pisah email per blok tanggal
+   PATCH v4: autoAssignGroups — Pisah email per blok (Blok 1: A-D, Blok 2: E-H)
    
    ATURAN:
-   - Blok 1 = Grup A, B, C, D  (main 6 Juni)
-   - Blok 2 = Grup E, F, G, H  (main 7 Juni)
+   - Blok 1 = Grup A, B, C, D  
+   - Blok 2 = Grup E, F, G, H  
    
    Untuk email yang sama:
    - Tim ke-1 → Blok 1 (salah satu dari A-D)
@@ -2157,19 +2156,13 @@ function openImportPreviewModal(entries, fileName, hasEmail) {
     ([, teams]) => teams.length > 1,
   );
 
-  // Hitung grup aktif yang benar-benar dipakai
   const activeGroupSet = new Set(entries.map((e) => e.assignedGroup));
   const activeGroupCount = activeGroupSet.size;
 
-  // Warna per blok
   const blockColor = (g) =>
     ["A", "B", "C", "D"].includes(g)
-      ? { bg: "rgba(0,102,255,0.15)", text: "#3a9fff", label: "Blok 1 · 6 Jun" }
-      : {
-          bg: "rgba(0,200,100,0.15)",
-          text: "#00c853",
-          label: "Blok 2 · 7 Jun",
-        };
+      ? { bg: "rgba(0,102,255,0.15)", text: "#3a9fff" }
+      : { bg: "rgba(0,200,100,0.15)", text: "#00c853" };
 
   openModal(
     "📥 Preview Import Tim dari Excel",
@@ -2197,19 +2190,19 @@ function openImportPreviewModal(entries, fileName, hasEmail) {
         ✅ <strong>Tag & Grup sudah di-generate otomatis.</strong><br>
         ${
           hasEmail
-            ? `Tim dari email yang sama dipisah ke <strong>hari berbeda</strong> (Blok A–D = 6 Juni, Blok E–H = 7 Juni).`
+            ? `Tim dari email yang sama dipisah ke <strong>grup yang berbeda</strong>.`
             : `⚠️ Kolom Email tidak ditemukan — grup di-assign round-robin.`
         }
         <br>Anda tetap bisa edit manual via ✏️ Edit Tim setelah import.
       </div>
 
-      <!-- Multi-slot section — tampilan baru yang rapi -->
+      <!-- Multi-slot section -->
       ${
         multiSlotEmails.length
           ? `
         <div style="background:rgba(255,171,0,0.06);border:1px solid rgba(255,171,0,0.25);border-radius:10px;padding:14px 16px;">
           <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#ffab00;margin-bottom:10px;">
-            📧 Pendaftar Multi-Slot — Tim dipisah hari berbeda
+            📧 Pendaftar Multi-Slot
           </div>
           ${multiSlotEmails
             .map(
@@ -2222,7 +2215,7 @@ function openImportPreviewModal(entries, fileName, hasEmail) {
                     const bc = blockColor(t.assignedGroup);
                     return `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:${bc.bg};font-size:0.78rem;">
                     <span style="font-weight:700;color:var(--text-primary)">${t.name}</span>
-                    <span style="color:${bc.text};font-size:0.68rem;font-weight:700;">Grup ${t.assignedGroup} · ${bc.label}</span>
+                    <span style="color:${bc.text};font-size:0.68rem;font-weight:700;">Grup ${t.assignedGroup}</span>
                   </span>`;
                   })
                   .join("")}
@@ -2234,18 +2227,6 @@ function openImportPreviewModal(entries, fileName, hasEmail) {
         </div>`
           : ""
       }
-
-      <!-- Legenda blok -->
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <div style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:var(--text-secondary);">
-          <span style="width:10px;height:10px;border-radius:50%;background:#3a9fff;display:inline-block"></span>
-          Blok 1 (Grup A–D) = main 6 Juni
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:0.75rem;color:var(--text-secondary);">
-          <span style="width:10px;height:10px;border-radius:50%;background:#00c853;display:inline-block"></span>
-          Blok 2 (Grup E–H) = main 7 Juni
-        </div>
-      </div>
 
       <!-- Daftar tim -->
       <div class="import-preview-list">
@@ -2260,7 +2241,6 @@ function openImportPreviewModal(entries, fileName, hasEmail) {
             <div class="import-preview-row">
               <span class="import-preview-num">${i + 1}</span>
               <span class="import-preview-name">${e.name}</span>
-              <span class="import-preview-badge" style="color:#3a9fff;font-family:monospace">${e.tag}</span>
               <span style="padding:2px 10px;border-radius:20px;font-size:0.7rem;font-weight:700;background:${bc.bg};color:${bc.text};">
                 Grup ${e.assignedGroup}
               </span>

@@ -1277,55 +1277,6 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-.bracket-centered {
-  display: flex;
-  align-items: stretch;
-  gap: 6px;
-  min-width: 1280px; /* lebar minimum bracket */
-  min-height: 600px;
-  padding: 20px 16px;
-}
-
-.bracket-left-r16,
-.bracket-right-r16 {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  gap: 12px;
-  flex: 0 0 190px;
-  width: 190px;
-}
-
-.bracket-left-qf,
-.bracket-right-qf {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  gap: 12px;
-  flex: 0 0 190px;
-  width: 190px;
-}
-
-.bracket-left-sf,
-.bracket-right-sf {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  gap: 12px;
-  flex: 0 0 190px;
-  width: 190px;
-}
-
-.bracket-center-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  min-width: 190px;
-}
-
 .bracket-match {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -1416,14 +1367,83 @@ body {
   white-space: nowrap;
 }
 
+/* ============================================================
+   BRACKET — FIX VERTICAL CENTERING & EDIT BADGE
+   ============================================================ */
+
+/* Semua kolom bracket stretch penuh dan flex column */
 .bracket-col {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  flex: 1;
 }
 
-.bracket-connector-col {
-  width: 12px;
-  flex-shrink: 0;
+/* R16 — space-between karena paling banyak card (4 card) */
+.bracket-left-r16,
+.bracket-right-r16 {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 12px;
+  flex: 1;
+}
+
+/* QF — 2 card, centered dengan space-around */
+.bracket-left-qf,
+.bracket-right-qf {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 12px;
+  flex: 1;
+}
+
+/* SF — 1 card, center penuh */
+.bracket-left-sf,
+.bracket-right-sf {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  flex: 1;
+}
+
+/* Center col (Bronze + Final) */
+.bracket-center-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  min-width: 190px;
+}
+
+/* bracket-centered harus stretch agar semua kolom sama tinggi */
+.bracket-centered {
+  display: flex;
+  align-items: stretch;   /* ← ganti dari align-items: stretch (sudah ada) */
+  gap: 6px;
+  min-width: 1280px;
+  min-height: 600px;
+  padding: 20px 16px;
+}
+
+/* ── Edit badge: pindah inline di dalam label, hapus posisi absolut ── */
+.bracket-edit-badge {
+  display: inline-block;
+  font-size: 0.58rem;
+  font-weight: 800;
+  background: #00c853;
+  color: #000;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-left: 6px;
+  vertical-align: middle;
+  pointer-events: none;
+  /* HAPUS: position, top, right */
+  position: static;
 }
 
 /* ============================================================
@@ -1773,19 +1793,6 @@ body {
   background: rgba(0, 200, 100, 0.08) !important;
   transform: scale(1.04) !important;
   box-shadow: 0 4px 20px rgba(0, 200, 100, 0.2) !important;
-}
-
-.bracket-edit-badge {
-  position: absolute;
-  top: -10px;
-  right: 8px;
-  background: #00c853;
-  color: #000;
-  font-size: 0.58rem;
-  font-weight: 800;
-  padding: 2px 8px;
-  border-radius: 20px;
-  pointer-events: none;
 }
 
 /* ============================================================

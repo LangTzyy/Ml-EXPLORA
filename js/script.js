@@ -21,13 +21,12 @@ const LOGO_COLORS = [
 ];
 
 const DEFAULT_TIMELINE = [
-  { id:"group-ad", icon:"⚔️", label:"Babak Grup A–D",       desc:"Round robin Grup A, B, C, D",                        date:"2026-06-06", cssClass:"stage-group-ad" },
-  { id:"group-eh", icon:"⚔️", label:"Babak Grup E–H",       desc:"Round robin Grup E, F, G, H",                        date:"2026-06-07", cssClass:"stage-group-eh" },
-  { id:"r16",      icon:"⚡",  label:"Babak 16 Besar",       desc:"Round of 16 (BO3)",                                   date:"2026-06-13", cssClass:"stage-r16"      },
-  { id:"qf",       icon:"🔥", label:"Babak 8 Besar",         desc:"Quarter Finals (BO3)",                                date:"2026-06-14", cssClass:"stage-qf"       },
-  { id:"sf",       icon:"🏅", label:"Semifinal",             desc:"Semi Finals (BO3)",                                   date:"2026-06-20", cssClass:"stage-sf"       },
-  { id:"bronze",   icon:"🥉", label:"Perebutan Juara 3",     desc:"Match antara 2 tim yang kalah di Semifinal (BO3)",    date:"2026-06-21", cssClass:"stage-bronze"   },
-  { id:"final",    icon:"🏆", label:"Grand Final",           desc:"Perebutan Juara 1 & 2 (BO3)",                         date:"2026-06-21", cssClass:"stage-final"    },
+  { id:"group",  icon:"⚔️", label:"Babak Grup",         desc:"Round robin semua grup",                        date:"2026-06-13", cssClass:"stage-group-ad" },
+  { id:"r16",    icon:"⚡",  label:"Babak 16 Besar",     desc:"Round of 16 (BO3)",                                   date:"2026-06-14", cssClass:"stage-r16"      },
+  { id:"qf",     icon:"🔥", label:"Babak 8 Besar",       desc:"Quarter Finals (BO3)",                                date:"2026-06-20", cssClass:"stage-qf"       },
+  { id:"sf",     icon:"🏅", label:"Semifinal",           desc:"Semi Finals (BO3)",                                   date:"2026-06-20", cssClass:"stage-sf"       },
+  { id:"bronze", icon:"🥉", label:"Perebutan Juara 3",   desc:"Match antara 2 tim yang kalah di Semifinal (BO3)",    date:"2026-06-21", cssClass:"stage-bronze"   },
+  { id:"final",  icon:"🏆", label:"Grand Final",         desc:"Perebutan Juara 1 & 2 (BO3)",                         date:"2026-06-21", cssClass:"stage-final"    },
 ];
 
 /* ============================================================
@@ -293,9 +292,7 @@ function renderSchedule(data) {
 }
 
 function getMatchDateFromTimeline(match, tl) {
-  const adGroups = ["A","B","C","D"];
-  const stageId  = adGroups.includes(match.group) ? "group-ad" : "group-eh";
-  const entry    = tl.find((t) => t.id === stageId);
+  const entry = tl.find((t) => t.id === "group");
   return entry?.date ? formatDateID(entry.date) : "";
 }
 
