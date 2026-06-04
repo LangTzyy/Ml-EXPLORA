@@ -61,7 +61,6 @@ async function initAdmin() {
     if (window.innerWidth <= 900) {
       sidebar.classList.contains("open") ? closeSidebar() : openSidebar();
     }
-    // Di desktop hamburger tidak aktif
   });
 
   document
@@ -125,7 +124,9 @@ async function initAdmin() {
     });
   }
 
-  document.getElementById("importFile").addEventListener("change", importData);
+  // Import hanya di tab teams
+  document.getElementById("importFile")?.addEventListener("change", importData);
+
   document.getElementById("modalClose").addEventListener("click", closeModal);
   document.getElementById("modalOverlay").addEventListener("click", (e) => {
     if (e.target.id === "modalOverlay") closeModal();
@@ -207,6 +208,66 @@ function renderAdmin() {
   renderTimelineEditor();
   renderAdminStandings();
   renderSettingsTab().catch(console.error);
+}
+
+/* ============================================================
+   CONFIRM MODAL — pengganti window.confirm()
+   Penggunaan:
+     confirmModal("Pesan?", () => { /* aksi jika OK *\/ });
+   ============================================================ */
+function confirmModal(message, onConfirm, options = {}) {
+  const {
+    title = "Konfirmasi",
+    confirmText = "Ya, Lanjutkan",
+    cancelText = "Batal",
+    type = "warning", // "warning" | "danger" | "info"
+  } = options;
+
+  const iconMap = {
+    warning: "⚠️",
+    danger: "🗑️",
+    info: "ℹ️",
+  };
+
+  const colorMap = {
+    warning: "rgba(255,171,0,0.1)",
+    danger: "rgba(255,68,68,0.1)",
+    info: "rgba(0,102,255,0.1)",
+  };
+
+  const borderMap = {
+    warning: "rgba(255,171,0,0.3)",
+    danger: "rgba(255,68,68,0.3)",
+    info: "rgba(0,102,255,0.3)",
+  };
+
+  const btnClass = type === "danger" ? "btn-danger" : type === "info" ? "btn-primary" : "btn-primary";
+
+  openModal(
+    title,
+    `
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;
+                  background:${colorMap[type]};border:1px solid ${borderMap[type]};
+                  border-radius:10px;">
+        <span style="font-size:1.5rem;line-height:1;flex-shrink:0;">${iconMap[type]}</span>
+        <p style="font-size:0.88rem;color:var(--text-secondary);line-height:1.6;margin:0;">${message}</p>
+      </div>
+      <div class="modal-actions" style="margin-top:0;">
+        <button class="btn btn-ghost" onclick="closeModal()">${cancelText}</button>
+        <button class="btn ${btnClass}" id="confirmModalOkBtn">${confirmText}</button>
+      </div>
+    </div>
+  `
+  );
+
+  // Attach handler setelah modal render
+  setTimeout(() => {
+    document.getElementById("confirmModalOkBtn")?.addEventListener("click", () => {
+      closeModal();
+      onConfirm();
+    });
+  }, 0);
 }
 
 /* ============ STATS ============ */
@@ -441,13 +502,20 @@ window.saveTeam = function (id) {
 };
 
 window.deleteTeam = function (id) {
-  if (!confirm("Hapus tim ini? Aksi tidak bisa dibatalkan.")) return;
   const data = getData();
-  data.teams = data.teams.filter((t) => t.id !== id);
-  data.matches = data.matches.filter((m) => m.teamA !== id && m.teamB !== id);
-  saveData(data);
-  renderAdmin();
-  toast("Tim dihapus", "success");
+  const team = data.teams.find((t) => t.id === id);
+  confirmModal(
+    `Hapus tim <strong>${team?.name || "ini"}</strong>? Semua jadwal yang melibatkan tim ini juga akan dihapus. Aksi tidak bisa dibatalkan.`,
+    () => {
+      const d = getData();
+      d.teams = d.teams.filter((t) => t.id !== id);
+      d.matches = d.matches.filter((m) => m.teamA !== id && m.teamB !== id);
+      saveData(d);
+      renderAdmin();
+      toast("Tim dihapus", "success");
+    },
+    { title: "Hapus Tim", confirmText: "Ya, Hapus", type: "danger" }
+  );
 };
 
 /* ============ SCHEDULE ============ */
@@ -511,8 +579,7 @@ function matchCardListHtml(match, data) {
 }
 
 /* ============================================================
-   EDIT MATCHUP JADWAL GRUP — BARU
-   Admin bisa ubah tim A dan tim B di match grup mana saja
+   EDIT MATCHUP JADWAL GRUP
    ============================================================ */
 window.openGroupMatchupEditModal = function (matchId) {
   const data = getData();
@@ -522,7 +589,6 @@ window.openGroupMatchupEditModal = function (matchId) {
   const a = teamById(m.teamA, data);
   const b = teamById(m.teamB, data);
 
-  // Hanya tim dalam grup yang sama yang bisa dipilih
   const groupTeams = data.teams.filter((t) => t.group === m.group);
 
   const teamOptions = (currentId) =>
@@ -539,7 +605,6 @@ window.openGroupMatchupEditModal = function (matchId) {
     `✏️ Edit Matchup — Grup ${m.group}`,
     `
     <div class="matchup-edit-wrap">
-
       <div class="matchup-current">
         <div class="matchup-current-label">Match Saat Ini</div>
         <div class="matchup-vs-row">
@@ -553,7 +618,6 @@ window.openGroupMatchupEditModal = function (matchId) {
             : ""
         }
       </div>
-
       <div class="matchup-option-card">
         <div class="matchup-option-title">🔁 Ganti Tim di Match</div>
         <div class="matchup-option-desc">Pilih tim lain dari <strong>Grup ${m.group}</strong> untuk mengisi slot pertandingan ini.</div>
@@ -573,7 +637,6 @@ window.openGroupMatchupEditModal = function (matchId) {
           <button class="btn btn-primary" onclick="saveGroupMatchup('${matchId}')">💾 Simpan</button>
         </div>
       </div>
-
     </div>
   `,
   );
@@ -596,7 +659,6 @@ window.saveGroupMatchup = function (matchId) {
     return;
   }
 
-  // Cek duplikat matchup di grup yang sama (A vs B atau B vs A sudah ada di match lain)
   const duplicate = data.matches.find(
     (x) =>
       x.id !== matchId &&
@@ -691,8 +753,7 @@ window.saveBO1 = function (id) {
 };
 
 /* ============================================================
-   PATCH: renderAdminStandings — Fix kolom aksi tidak terpotong
-   Ganti fungsi renderAdminStandings di admin.js dengan ini
+   PATCH: renderAdminStandings
    ============================================================ */
 
 function renderAdminStandings() {
@@ -751,13 +812,13 @@ function renderAdminStandings() {
 
         <table class="standings-table" style="table-layout:fixed;width:100%;">
           <colgroup>
-            <col style="width:36px">       <!-- # -->
-            <col style="width:auto">       <!-- Tim -->
-            <col style="width:36px">       <!-- M -->
-            <col style="width:36px">       <!-- W -->
-            <col style="width:36px">       <!-- D -->
-            <col style="width:36px">       <!-- L -->
-            <col style="width:52px">       <!-- Poin -->
+            <col style="width:36px">
+            <col style="width:auto">
+            <col style="width:36px">
+            <col style="width:36px">
+            <col style="width:36px">
+            <col style="width:36px">
+            <col style="width:52px">
           </colgroup>
           <thead>
             <tr>
@@ -796,7 +857,7 @@ function renderAdminStandings() {
     html || '<div class="empty-state">📊 Belum ada data klasemen.</div>';
 }
 
-/* ── Modal: Atur semua tim di satu grup (bisa pindah satu per satu) ── */
+/* ── Modal: Atur semua tim di satu grup ── */
 window.openMoveTeamModal = function (group) {
   const data = getData();
   const teams = data.teams.filter((t) => t.group === group);
@@ -806,19 +867,13 @@ window.openMoveTeamModal = function (group) {
     return;
   }
 
-  const isBlock1 = ["A", "B", "C", "D"].includes(group);
-  const blockLabel = isBlock1 ? "Blok 1 " : "Blok 2 ";
-  const blockColor = isBlock1 ? "#3a9fff" : "#00c853";
-
   openModal(
     `🔀 Atur Tim — Grup ${group}`,
     `
     <div style="display:flex;flex-direction:column;gap:12px;">
-
       <div style="padding:10px 14px;background:rgba(0,102,255,0.07);border:1px solid rgba(0,102,255,0.2);border-radius:10px;font-size:0.8rem;color:var(--text-secondary);">
         Pilih tim yang ingin dipindah ke grup lain. Perubahan akan mereset hasil match tim tersebut jika ada.
       </div>
-
       <div style="display:flex;flex-direction:column;gap:8px;">
         ${teams
           .map((t) => {
@@ -837,7 +892,6 @@ window.openMoveTeamModal = function (group) {
           })
           .join("")}
       </div>
-
     </div>
   `,
   );
@@ -854,7 +908,6 @@ window.openMoveSingleTeamModal = function (teamId) {
     (m) => (m.teamA === teamId || m.teamB === teamId) && m.played,
   );
 
-  // Hitung isi tiap grup (tanpa tim ini)
   const groupCounts = {};
   GROUPS.forEach((g) => {
     groupCounts[g] = 0;
@@ -863,7 +916,6 @@ window.openMoveSingleTeamModal = function (teamId) {
     if (t.id !== teamId) groupCounts[t.group]++;
   });
 
-  // Blok warna helper
   const blockColor = (g) =>
     ["A", "B", "C", "D"].includes(g)
       ? { color: "#3a9fff", label: "6 Jun" }
@@ -894,15 +946,12 @@ window.openMoveSingleTeamModal = function (teamId) {
     `↗ Pindah Tim — ${team.name}`,
     `
     <div style="display:flex;flex-direction:column;gap:14px;">
-
-      <!-- Info tim -->
       <div style="padding:14px 16px;background:rgba(0,102,255,0.06);border:1px solid var(--border-light);border-radius:10px;display:flex;justify-content:space-between;align-items:center;">
         <div>
           <div style="font-weight:700;font-size:1rem;color:var(--text-primary)">${team.name} <span style="font-size:0.75rem;color:var(--text-tertiary);font-family:monospace">(${team.tag})</span></div>
           <div style="font-size:0.78rem;color:var(--text-tertiary);margin-top:3px;">Grup ${team.group} · ${s.played}M ${s.wins}W ${s.losses}L · ${s.points >= 0 ? "+" : ""}${s.points} pts</div>
         </div>
       </div>
-
       ${
         hasMatches
           ? `
@@ -911,15 +960,12 @@ window.openMoveSingleTeamModal = function (teamId) {
         </div>`
           : ""
       }
-
-      <!-- Pilih grup tujuan -->
       <div>
         <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-tertiary);margin-bottom:8px;">Pilih Grup Tujuan</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           ${groupOptions}
         </div>
       </div>
-
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
       </div>
@@ -940,7 +986,6 @@ window.doMoveTeam = function (teamId, newGroup) {
     return;
   }
 
-  // Cek kapasitas grup tujuan
   const newGroupCount = data.teams.filter(
     (t) => t.group === newGroup && t.id !== teamId,
   ).length;
@@ -949,20 +994,17 @@ window.doMoveTeam = function (teamId, newGroup) {
     return;
   }
 
-  // Reset match yang melibatkan tim ini (di grup lama)
   let resetCount = 0;
   data.matches = data.matches.filter((m) => {
     if (m.teamA === teamId || m.teamB === teamId) {
       resetCount++;
-      return false; // hapus match lama
+      return false;
     }
     return true;
   });
 
-  // Pindah grup
   team.group = newGroup;
 
-  // Tambah match baru di grup tujuan (round robin dengan tim yang sudah ada)
   const newGroupTeams = data.teams.filter(
     (t) => t.group === newGroup && t.id !== teamId,
   );
@@ -979,7 +1021,6 @@ window.doMoveTeam = function (teamId, newGroup) {
     });
   });
 
-  // Reset bracket jika ada
   const hadBracket = data.bracket?.r16?.length > 0;
   if (hadBracket) {
     data.bracket = { r16: [], qf: [], sf: [], bronze: [], final: [] };
@@ -998,7 +1039,6 @@ window.doMoveTeam = function (teamId, newGroup) {
 
 /* ============================================================
    BRACKET — CENTERED LEFT-RIGHT
-   + FITUR SWAP/EDIT MATCHUP (BARU)
    ============================================================ */
 function renderCenteredBracket() {
   const wrap = document.getElementById("adminBracket");
@@ -1061,16 +1101,15 @@ function renderCenteredBracket() {
     </div>
   `;
 
-  // Attach click handlers
   wrap.querySelectorAll(".bracket-match").forEach((el) => {
     el.addEventListener("click", () => {
       const matchId = el.dataset.matchid;
       if (!matchId) return;
       if (swapModeActive) {
-        openMatchupEditModal(matchId); // mode edit → buka swap/ganti modal
+        openMatchupEditModal(matchId);
       } else {
         const d = getData();
-        openBO3Modal(matchId, d); // mode normal → input skor
+        openBO3Modal(matchId, d);
       }
     });
   });
@@ -1118,8 +1157,7 @@ function bracketMatchHtml(m, data, key, extraClass = "") {
 }
 
 /* ============================================================
-   MATCHUP EDIT MODAL — BARU
-   Admin bisa: (1) Swap Tim A ↔ Tim B, atau (2) Ganti tim dengan tim lain
+   MATCHUP EDIT MODAL
    ============================================================ */
 function openMatchupEditModal(matchId) {
   const data = getData();
@@ -1138,7 +1176,6 @@ function openMatchupEditModal(matchId) {
     return;
   }
 
-  // Semua tim yang sudah ada di bracket (untuk dropdown ganti tim)
   const bracketTeamIds = new Set();
   all.forEach((match) => {
     if (match.teamA) bracketTeamIds.add(match.teamA);
@@ -1160,8 +1197,6 @@ function openMatchupEditModal(matchId) {
     "✏️ Edit Matchup Bracket",
     `
     <div class="matchup-edit-wrap">
-
-      <!-- Info match saat ini -->
       <div class="matchup-current">
         <div class="matchup-current-label">Match Saat Ini</div>
         <div class="matchup-vs-row">
@@ -1171,15 +1206,11 @@ function openMatchupEditModal(matchId) {
         </div>
         ${hasResult ? `<div class="matchup-warn">⚠️ Match ini sudah punya hasil (${m.scoreA}-${m.scoreB}). Mengubah matchup akan mereset hasilnya.</div>` : ""}
       </div>
-
-      <!-- Opsi 1: Swap posisi -->
       <div class="matchup-option-card" id="optSwapCard">
         <div class="matchup-option-title">🔄 Swap Posisi Tim</div>
         <div class="matchup-option-desc">Tukar posisi Tim A dan Tim B (Slot atas ↔ Slot bawah). Tim tidak berubah, hanya posisinya.</div>
         <button class="btn btn-primary" onclick="doSwapMatchup('${matchId}')">🔄 Swap Sekarang</button>
       </div>
-
-      <!-- Opsi 2: Ganti tim secara manual -->
       <div class="matchup-option-card" id="optEditCard">
         <div class="matchup-option-title">🔁 Ganti Tim di Match</div>
         <div class="matchup-option-desc">Pilih tim yang akan mengisi setiap slot. Tim dipilih dari tim yang sudah ada di bracket.</div>
@@ -1199,20 +1230,17 @@ function openMatchupEditModal(matchId) {
           <button class="btn btn-primary" onclick="doEditMatchup('${matchId}')">💾 Simpan Perubahan</button>
         </div>
       </div>
-
     </div>
   `,
   );
 }
 
-/* Swap Tim A ↔ Tim B */
 window.doSwapMatchup = function (matchId) {
   const data = getData();
   const all = getAllBracketMatches(data);
   const m = all.find((x) => x.id === matchId);
   if (!m) return;
 
-  // Tukar
   const tmpTeam = m.teamA;
   const tmpScore = m.scoreA;
   m.teamA = m.teamB;
@@ -1220,7 +1248,6 @@ window.doSwapMatchup = function (matchId) {
   m.teamB = tmpTeam;
   m.scoreB = tmpScore;
 
-  // Reset winner jika ada (karena posisi berubah)
   if (m.played) {
     m.played = false;
     m.scoreA = null;
@@ -1239,7 +1266,6 @@ window.doSwapMatchup = function (matchId) {
   renderCenteredBracket();
 };
 
-/* Ganti tim secara manual */
 window.doEditMatchup = function (matchId) {
   const data = getData();
   const all = getAllBracketMatches(data);
@@ -1263,7 +1289,6 @@ window.doEditMatchup = function (matchId) {
   m.teamA = newA;
   m.teamB = newB;
 
-  // Reset hasil jika ada perubahan tim
   if (changed && m.played) {
     m.played = false;
     m.scoreA = null;
@@ -1282,7 +1307,6 @@ window.doEditMatchup = function (matchId) {
   renderCenteredBracket();
 };
 
-/* Helper: kumpulkan semua match dari semua round bracket */
 function getAllBracketMatches(data) {
   return [
     ...(data.bracket?.r16 || []),
@@ -1293,7 +1317,7 @@ function getAllBracketMatches(data) {
   ];
 }
 
-/* ============ BO3 MODAL (score input, mode normal) ============ */
+/* ============ BO3 MODAL ============ */
 function openBO3Modal(matchId, data) {
   if (!data) data = getData();
   const all = getAllBracketMatches(data);
@@ -1357,16 +1381,25 @@ window.saveBO3 = function (matchId) {
 function generateBracket() {
   const data = getData();
   const allPlayed = data.matches.every((m) => m.played);
-  if (
-    !allPlayed &&
-    !confirm("Belum semua match grup selesai. Tetap generate bracket?")
-  )
-    return;
-  data.bracket = buildBracketFromStandings(data);
-  saveData(data);
-  renderAdmin();
-  toast("Bracket playoff berhasil di-generate", "success");
-  switchTab("playoff");
+  if (!allPlayed) {
+    confirmModal(
+      "Belum semua match grup selesai. Tetap generate bracket sekarang?",
+      () => {
+        data.bracket = buildBracketFromStandings(data);
+        saveData(data);
+        renderAdmin();
+        toast("Bracket playoff berhasil di-generate", "success");
+        switchTab("playoff");
+      },
+      { title: "Generate Bracket", confirmText: "Ya, Generate", type: "warning" }
+    );
+  } else {
+    data.bracket = buildBracketFromStandings(data);
+    saveData(data);
+    renderAdmin();
+    toast("Bracket playoff berhasil di-generate", "success");
+    switchTab("playoff");
+  }
 }
 
 /* ============ TIMELINE ============ */
@@ -1466,114 +1499,99 @@ function saveTimeline() {
 }
 
 /* ============ RESET & SIMULATE ============ */
-// JADI ini:
 function resetAll() {
-  if (!confirm("Reset SEMUA data turnamen? Aksi ini tidak bisa dibatalkan.")) return;
-  const emptyData = {
-    teams: [], matches: [],
-    bracket: { r16:[], qf:[], sf:[], bronze:[], final:[] },
-    timeline: DEFAULT_TIMELINE.map(t => ({...t}))
-  };
-  saveData(emptyData);
-  renderAdmin();
-  toast("Data direset. Mulai tambahkan tim baru.", "success");
+  confirmModal(
+    "Reset <strong>SEMUA</strong> data turnamen? Tim, jadwal, hasil, dan bracket akan dihapus permanen. Aksi ini tidak bisa dibatalkan.",
+    () => {
+      const emptyData = {
+        teams: [], matches: [],
+        bracket: { r16:[], qf:[], sf:[], bronze:[], final:[] },
+        timeline: DEFAULT_TIMELINE.map(t => ({...t}))
+      };
+      saveData(emptyData);
+      renderAdmin();
+      toast("Data direset. Mulai tambahkan tim baru.", "success");
+    },
+    { title: "Reset Semua Data", confirmText: "Ya, Reset Semua", type: "danger" }
+  );
 }
 
-/* ============================================================
-   PATCH: simulateAll — Tidak harus full slot
-   Ganti fungsi simulateAll di admin.js dengan ini
-   ============================================================ */
-
 function simulateAll() {
-  if (!confirm("Simulasikan seluruh turnamen secara acak?")) return;
-  const data = getData();
+  confirmModal(
+    "Simulasikan seluruh turnamen secara acak? Semua data yang ada akan ditimpa.",
+    () => {
+      const data = getData();
 
-  if (!data.teams.length) {
-    toast("Tidak ada tim. Tambah tim terlebih dahulu.", "error");
-    return;
-  }
-
-  // Cek apakah bracket bisa dibentuk
-  // Minimal butuh 1 tim per grup yang aktif
-  const activeGroups = [...new Set(data.teams.map((t) => t.group))];
-  if (activeGroups.length < 2) {
-    toast(
-      "Minimal butuh tim di 2 grup berbeda untuk generate bracket.",
-      "error",
-    );
-    return;
-  }
-
-  // Generate jadwal jika belum ada
-  if (!data.matches.length) {
-    data.matches = generateGroupSchedule(data.teams);
-  }
-
-  // Simulasi match grup
-  data.matches.forEach((m) => {
-    if (Math.random() > 0.5) {
-      m.scoreA = 1;
-      m.scoreB = 0;
-    } else {
-      m.scoreA = 0;
-      m.scoreB = 1;
-    }
-    m.played = true;
-  });
-
-  // Generate bracket dari standings
-  data.bracket = buildBracketFromStandings(data);
-
-  // Cek apakah bracket berhasil dibentuk
-  const hasTeams = data.bracket.r16?.some((m) => m.teamA || m.teamB);
-  if (!hasTeams) {
-    toast(
-      "Bracket tidak bisa dibentuk. Pastikan tiap grup punya minimal 1 tim.",
-      "error",
-    );
-    saveData(data);
-    renderAdmin();
-    return;
-  }
-
-  // Helper simulasi 1 round
-  const simulateRound = (round) => {
-    round.forEach((m) => {
-      if (!m.teamA || !m.teamB) return; // skip jika salah satu slot kosong (TBD)
-      if (Math.random() > 0.5) {
-        m.scoreA = 2;
-        m.scoreB = Math.random() > 0.5 ? 1 : 0;
-        m.winner = m.teamA;
-      } else {
-        m.scoreB = 2;
-        m.scoreA = Math.random() > 0.5 ? 1 : 0;
-        m.winner = m.teamB;
+      if (!data.teams.length) {
+        toast("Tidak ada tim. Tambah tim terlebih dahulu.", "error");
+        return;
       }
-      m.played = true;
-    });
-  };
 
-  simulateRound(data.bracket.r16);
-  advanceBracket(data);
-  simulateRound(data.bracket.qf);
-  advanceBracket(data);
-  simulateRound(data.bracket.sf);
-  advanceBracket(data);
-  simulateRound(data.bracket.bronze);
-  simulateRound(data.bracket.final);
+      const activeGroups = [...new Set(data.teams.map((t) => t.group))];
+      if (activeGroups.length < 2) {
+        toast("Minimal butuh tim di 2 grup berbeda untuk generate bracket.", "error");
+        return;
+      }
 
-  saveData(data);
-  renderAdmin();
-  toast("Turnamen berhasil disimulasikan! 🎉", "success");
+      if (!data.matches.length) {
+        data.matches = generateGroupSchedule(data.teams);
+      }
+
+      data.matches.forEach((m) => {
+        if (Math.random() > 0.5) {
+          m.scoreA = 1; m.scoreB = 0;
+        } else {
+          m.scoreA = 0; m.scoreB = 1;
+        }
+        m.played = true;
+      });
+
+      data.bracket = buildBracketFromStandings(data);
+
+      const hasTeams = data.bracket.r16?.some((m) => m.teamA || m.teamB);
+      if (!hasTeams) {
+        toast("Bracket tidak bisa dibentuk. Pastikan tiap grup punya minimal 1 tim.", "error");
+        saveData(data);
+        renderAdmin();
+        return;
+      }
+
+      const simulateRound = (round) => {
+        round.forEach((m) => {
+          if (!m.teamA || !m.teamB) return;
+          if (Math.random() > 0.5) {
+            m.scoreA = 2;
+            m.scoreB = Math.random() > 0.5 ? 1 : 0;
+            m.winner = m.teamA;
+          } else {
+            m.scoreB = 2;
+            m.scoreA = Math.random() > 0.5 ? 1 : 0;
+            m.winner = m.teamB;
+          }
+          m.played = true;
+        });
+      };
+
+      simulateRound(data.bracket.r16);
+      advanceBracket(data);
+      simulateRound(data.bracket.qf);
+      advanceBracket(data);
+      simulateRound(data.bracket.sf);
+      advanceBracket(data);
+      simulateRound(data.bracket.bronze);
+      simulateRound(data.bracket.final);
+
+      saveData(data);
+      renderAdmin();
+      toast("Turnamen berhasil disimulasikan! 🎉", "success");
+    },
+    { title: "Simulasi Turnamen", confirmText: "Ya, Simulasikan", type: "warning" }
+  );
 }
 
 /* ============ STATS HELPER ============ */
 function getTeamStats(teamId, data) {
-  let wins = 0,
-    draws = 0,
-    losses = 0,
-    points = 0,
-    played = 0;
+  let wins = 0, draws = 0, losses = 0, points = 0, played = 0;
   data.matches.forEach((match) => {
     if (match.played && (match.teamA === teamId || match.teamB === teamId)) {
       played++;
@@ -1594,7 +1612,6 @@ function getTeamStats(teamId, data) {
   return { wins, draws, losses, points, played };
 }
 
-/* ============ EXPORT ============ */
 /* ============ EXPORT ============ */
 function exportToWord() {
   const data = getData();
@@ -1623,21 +1640,16 @@ function exportToWord() {
         th { background-color: #0066cc; color: white; padding: 6pt 8pt; text-align: left; font-weight: bold; border: 1pt solid #0055aa; }
         td { padding: 5pt 8pt; border: 1pt solid #cccccc; vertical-align: middle; }
         tr:nth-child(even) { background-color: #f5f8ff; }
-        tr:hover { background-color: #eef3ff; }
         .rank-1 { background-color: #fff9e6 !important; font-weight: bold; }
         .winner-cell { background-color: #e6f4ea !important; font-weight: bold; color: #1a7a35; }
         .champion-row td { background-color: #fff3cd !important; font-weight: bold; color: #856404; }
         .center { text-align: center; }
-        .section-break { page-break-before: always; }
-        .podium-table { border: 2pt solid #gold; }
       </style>
     </head>
     <body>${html}</body>
     </html>`;
 
-  const blob = new Blob([fullDoc], {
-    type: "application/msword;charset=utf-8",
-  });
+  const blob = new Blob([fullDoc], { type: "application/msword;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -1660,68 +1672,28 @@ function exportToPDF() {
     * { box-sizing: border-box; margin: 0; padding: 0; }
     @page { size: A4; margin: 1.8cm 2cm; }
     body { font-family: Arial, sans-serif; font-size: 10.5pt; color: #1a1a1a; line-height: 1.5; background: white; }
-
-    /* HEADER */
     .report-header { text-align: center; padding-bottom: 14pt; border-bottom: 2.5pt solid #0066cc; margin-bottom: 18pt; }
     .report-title { font-size: 20pt; font-weight: bold; color: #0066cc; letter-spacing: 1px; margin-bottom: 4pt; }
     .report-subtitle { font-size: 10pt; color: #666; }
-
-    /* SECTION HEADINGS */
-    h2 { font-size: 13pt; font-weight: bold; color: white; background: #0066cc;
-         padding: 5pt 10pt; margin: 18pt 0 8pt; border-radius: 3pt; }
-    h3 { font-size: 11pt; font-weight: bold; color: #0055aa;
-         margin: 12pt 0 5pt; padding-bottom: 2pt; border-bottom: 1pt solid #cce0ff; }
-
-    /* TABLES */
+    h2 { font-size: 13pt; font-weight: bold; color: white; background: #0066cc; padding: 5pt 10pt; margin: 18pt 0 8pt; border-radius: 3pt; }
+    h3 { font-size: 11pt; font-weight: bold; color: #0055aa; margin: 12pt 0 5pt; padding-bottom: 2pt; border-bottom: 1pt solid #cce0ff; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 14pt; font-size: 9.5pt; }
     thead tr { background: #0066cc; }
-    th { color: white; padding: 5pt 7pt; text-align: left; font-weight: bold;
-         border: 0.5pt solid #0055aa; font-size: 9pt; }
+    th { color: white; padding: 5pt 7pt; text-align: left; font-weight: bold; border: 0.5pt solid #0055aa; font-size: 9pt; }
     td { padding: 4.5pt 7pt; border: 0.5pt solid #d0d8e8; vertical-align: middle; }
     tbody tr:nth-child(even) { background: #f4f8ff; }
-    tbody tr:nth-child(odd)  { background: #ffffff; }
-
-    /* SPECIAL ROWS */
+    tbody tr:nth-child(odd) { background: #ffffff; }
     .rank-1 td { background: #fffbea !important; font-weight: bold; }
-    .rank-1 td:first-child { color: #c8960c; font-weight: 900; }
     .winner-cell { color: #1a7a35 !important; font-weight: bold !important; }
     .champion-row td { background: #fff3cd !important; font-weight: bold; }
     .center { text-align: center; }
     .score-cell { text-align: center; font-weight: bold; font-family: monospace; }
-
-    /* TIMELINE */
-    .timeline-table th:nth-child(1) { width: 18%; }
-    .timeline-table th:nth-child(2) { width: 28%; }
-    .timeline-table th:nth-child(3) { width: 54%; }
-
-    /* STANDINGS */
-    .standings-table th:nth-child(1) { width: 6%; text-align:center; }
-    .standings-table th:nth-child(2) { width: 30%; }
-    .standings-table th:nth-child(3) { width: 14%; }
-    .standings-table th:nth-child(n+4) { width: 10%; text-align:center; }
-    .standings-table td:nth-child(1),
-    .standings-table td:nth-child(n+4) { text-align: center; }
-
-    /* BRACKET */
-    .bracket-table th:nth-child(1),
-    .bracket-table th:nth-child(3) { width: 30%; }
-    .bracket-table th:nth-child(2) { width: 15%; text-align:center; }
-    .bracket-table th:nth-child(4) { width: 25%; }
-    .bracket-table td:nth-child(2) { text-align: center; font-weight: bold; font-family: monospace; }
-
-    /* PAGE BREAK */
     .page-break { page-break-before: always; }
-    .section-note { font-size: 9pt; color: #777; margin-bottom: 6pt; font-style: italic; }
-
-    /* FOOTER */
-    .report-footer { margin-top: 24pt; padding-top: 8pt; border-top: 1pt solid #ccc;
-                     text-align: center; font-size: 8.5pt; color: #999; }
-
+    .report-footer { margin-top: 24pt; padding-top: 8pt; border-top: 1pt solid #ccc; text-align: center; font-size: 8.5pt; color: #999; }
     @media print {
       h2 { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       thead tr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .rank-1 td, .champion-row td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .page-break { page-break-before: always; }
     }
   </style>
 </head>
@@ -1745,11 +1717,8 @@ function generateExportHTML(data, mode = "pdf") {
   const tournamentName = settings?.tournamentName || "EXPLORA Tournament";
   const tl = getTimeline(data);
 
-  // Sort standings per grup
   const groups = {};
-  GROUPS.forEach((g) => {
-    groups[g] = [];
-  });
+  GROUPS.forEach((g) => { groups[g] = []; });
   data.teams.forEach((t) => {
     if (groups[t.group]) groups[t.group].push(t);
   });
@@ -1764,14 +1733,12 @@ function generateExportHTML(data, mode = "pdf") {
 
   let html = "";
 
-  // ── HEADER ──
   html += `
     <div class="report-header">
       <div class="report-title">🏆 ${tournamentName} — TOURNAMENT REPORT 🏆</div>
       <div class="report-subtitle">Dibuat: ${new Date().toLocaleString("id-ID")}</div>
     </div>`;
 
-  // ── TIMELINE ──
   html += `<h2>🗓️ TIMELINE TURNAMEN</h2>
     <table class="timeline-table">
       <thead><tr><th>Tanggal</th><th>Tahap</th><th>Keterangan</th></tr></thead>
@@ -1781,10 +1748,9 @@ function generateExportHTML(data, mode = "pdf") {
   });
   html += `</tbody></table>`;
 
-  // ── STANDINGS ──
   html += `<div class="${mode === "pdf" ? "page-break" : ""}"></div>`;
   html += `<h2>📊 KLASEMEN GRUP</h2>
-    <p class="section-note">Sistem Poin: Menang = +1 &nbsp;|&nbsp; Seri = 0 &nbsp;|&nbsp; Kalah = -1. Tim ke-1 setiap grup lolos ke playoff.</p>`;
+    <p class="section-note">Sistem Poin: Menang = +1 &nbsp;|&nbsp; Seri = 0 &nbsp;|&nbsp; Kalah = -1.</p>`;
 
   for (const g of GROUPS) {
     if (!groups[g].length) continue;
@@ -1796,24 +1762,17 @@ function generateExportHTML(data, mode = "pdf") {
     groups[g].forEach((t, i) => {
       const s = getTeamStats(t.id, data);
       html += `<tr class="${i === 0 ? "rank-1" : ""}">
-        <td>${i + 1}</td>
-        <td>${t.name}</td>
-        <td><code>${t.tag}</code></td>
-        <td>${s.played}</td>
-        <td>${s.wins}</td>
-        <td>${s.draws}</td>
-        <td>${s.losses}</td>
+        <td>${i + 1}</td><td>${t.name}</td><td><code>${t.tag}</code></td>
+        <td>${s.played}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
         <td><b>${s.points}</b></td>
       </tr>`;
     });
     html += `</tbody></table>`;
   }
 
-  // ── BRACKET ──
   if (data.bracket?.r16?.length) {
     html += `<div class="${mode === "pdf" ? "page-break" : ""}"></div>`;
-    html += `<h2>🏆 PLAYOFF BRACKET (BO3)</h2>
-      <p class="section-note">Format Best of 3. Tim pertama yang menang 2 game melaju ke babak berikutnya.</p>`;
+    html += `<h2>🏆 PLAYOFF BRACKET (BO3)</h2>`;
 
     const rounds = [
       { key: "r16", label: "Round of 16", icon: "⚡" },
@@ -1826,7 +1785,6 @@ function generateExportHTML(data, mode = "pdf") {
     rounds.forEach((r) => {
       const matches = data.bracket[r.key] || [];
       if (!matches.some((m) => m.teamA || m.teamB)) return;
-
       html += `<h3>${r.icon} ${r.label}</h3>
         <table class="bracket-table">
           <thead><tr><th>Tim A</th><th>Skor</th><th>Tim B</th><th>Pemenang</th></tr></thead>
@@ -1847,28 +1805,13 @@ function generateExportHTML(data, mode = "pdf") {
       html += `</tbody></table>`;
     });
 
-    // Podium ringkasan
     const finalMatch = data.bracket.final?.[0];
     const bronzeMatch = data.bracket.bronze?.[0];
     if (finalMatch?.played && finalMatch?.winner) {
       const champ = teamById(finalMatch.winner, data);
-      const runnerUp = teamById(
-        finalMatch.winner === finalMatch.teamA
-          ? finalMatch.teamB
-          : finalMatch.teamA,
-        data,
-      );
-      const third = bronzeMatch?.played
-        ? teamById(bronzeMatch.winner, data)
-        : null;
-      const fourth = bronzeMatch?.played
-        ? teamById(
-            bronzeMatch.winner === bronzeMatch.teamA
-              ? bronzeMatch.teamB
-              : bronzeMatch.teamA,
-            data,
-          )
-        : null;
+      const runnerUp = teamById(finalMatch.winner === finalMatch.teamA ? finalMatch.teamB : finalMatch.teamA, data);
+      const third = bronzeMatch?.played ? teamById(bronzeMatch.winner, data) : null;
+      const fourth = bronzeMatch?.played ? teamById(bronzeMatch.winner === bronzeMatch.teamA ? bronzeMatch.teamB : bronzeMatch.teamA, data) : null;
 
       html += `<h3>🏅 Hasil Akhir</h3>
         <table>
@@ -1888,16 +1831,21 @@ function generateExportHTML(data, mode = "pdf") {
 
 /* ============ SCHEDULE REGENERATE ============ */
 function regenerateSchedule() {
-  if (!confirm("Generate ulang jadwal grup? Skor lama akan hilang.")) return;
-  const data = getData();
-  if (!data.teams.length) {
-    toast("Tidak ada tim. Tambah tim terlebih dahulu.", "error");
-    return;
-  }
-  data.matches = generateGroupSchedule(data.teams);
-  saveData(data);
-  renderAdmin();
-  toast("Jadwal grup berhasil di-generate", "success");
+  confirmModal(
+    "Generate ulang jadwal grup? Semua skor yang sudah diinput akan hilang.",
+    () => {
+      const data = getData();
+      if (!data.teams.length) {
+        toast("Tidak ada tim. Tambah tim terlebih dahulu.", "error");
+        return;
+      }
+      data.matches = generateGroupSchedule(data.teams);
+      saveData(data);
+      renderAdmin();
+      toast("Jadwal grup berhasil di-generate", "success");
+    },
+    { title: "Generate Ulang Jadwal", confirmText: "Ya, Generate Ulang", type: "warning" }
+  );
 }
 
 /* ============ IMPORT ============ */
@@ -1908,13 +1856,11 @@ function importData(e) {
 
   const ext = file.name.split(".").pop().toLowerCase();
 
-  // ── Excel import (.xlsx / .xls) ──
   if (ext === "xlsx" || ext === "xls") {
     importFromExcel(file);
     return;
   }
 
-  // ── JSON import (lama, tetap dipertahankan) ──
   const reader = new FileReader();
   reader.onload = (ev) => {
     try {
@@ -1931,29 +1877,17 @@ function importData(e) {
 }
 
 /* ============================================================
-   IMPORT DARI EXCEL (hasil Google Form)
-   - Kolom: "Nama Tim" & "Email Address"
-   - Tag  : auto-generate kombinasi (kata pertama + inisial kapital)
-   - Grup : auto-assign, email sama → tim dipisah ke grup berbeda
-   - Preview lengkap sebelum disimpan
+   IMPORT DARI EXCEL
    ============================================================ */
-
-/* ── Helper: generate tag dari nama tim ── */
 function generateTag(name) {
   const words = name.trim().split(/\s+/);
   if (words.length === 1) return words[0].substring(0, 5).toUpperCase();
-
-  // Kata pertama + inisial huruf kapital dari kata berikutnya
   const first = words[0].toUpperCase();
-  const initials = words
-    .slice(1)
-    .map((w) => w[0]?.toUpperCase() || "")
-    .join("");
+  const initials = words.slice(1).map((w) => w[0]?.toUpperCase() || "").join("");
   const raw = (first + initials).replace(/[^A-Z0-9]/g, "");
-  return raw.substring(0, 6); // maks 6 karakter
+  return raw.substring(0, 6);
 }
 
-/* ── Helper: pastikan tag unik dalam daftar ── */
 function uniqueTag(tag, usedTags) {
   let candidate = tag;
   let counter = 2;
@@ -1965,92 +1899,48 @@ function uniqueTag(tag, usedTags) {
   return candidate;
 }
 
-/* ============================================================
-   PATCH v4: autoAssignGroups — Pisah email per blok (Blok 1: A-D, Blok 2: E-H)
-   
-   ATURAN:
-   - Blok 1 = Grup A, B, C, D  
-   - Blok 2 = Grup E, F, G, H  
-   
-   Untuk email yang sama:
-   - Tim ke-1 → Blok 1 (salah satu dari A-D)
-   - Tim ke-2 → Blok 2 (salah satu dari E-H)
-   - Tim ke-3 → Blok 1 (grup berbeda dari tim ke-1)
-   - Tim ke-4 → Blok 2 (grup berbeda dari tim ke-2)
-   - dst.
-   
-   Dengan begitu tidak ada 2 tim dari email yang sama
-   yang main di hari yang sama.
-   ============================================================ */
-
 function autoAssignGroups(entries) {
   const maxPerGroup = 4;
   const BLOCK_1 = ["A", "B", "C", "D"];
   const BLOCK_2 = ["E", "F", "G", "H"];
 
   const groupSlots = {};
-  [...BLOCK_1, ...BLOCK_2].forEach((g) => {
-    groupSlots[g] = 0;
-  });
+  [...BLOCK_1, ...BLOCK_2].forEach((g) => { groupSlots[g] = 0; });
 
-  // FIX Bug 3: pakai index unik per-entri, bukan random
   let noEmailIdx = 0;
 
-  // Kelompokkan per email
   const emailBuckets = {};
   entries.forEach((e) => {
     let em = (e.email || "").toLowerCase().trim();
-    if (!em) em = "__no_email__" + noEmailIdx++; // unik per entri
+    if (!em) em = "__no_email__" + noEmailIdx++;
     if (!emailBuckets[em]) emailBuckets[em] = [];
     emailBuckets[em].push(e);
   });
 
-  // FIX Bug 1: proses per-bucket langsung (bukan snake draft global)
-  // Urutkan bucket: email dengan tim terbanyak duluan untuk distribusi merata
-  const bucketList = Object.entries(emailBuckets).sort(
-    ([, a], [, b]) => b.length - a.length,
-  );
+  const bucketList = Object.entries(emailBuckets).sort(([, a], [, b]) => b.length - a.length);
 
   bucketList.forEach(([email, bucket]) => {
-    const usedGroups = []; // grup yang sudah dipakai email ini
-
+    const usedGroups = [];
     bucket.forEach((entry, slotIndex) => {
-      // Tentukan blok berdasarkan urutan tim dari email ini
       const targetBlock = slotIndex % 2 === 0 ? BLOCK_1 : BLOCK_2;
       const usedSet = new Set(usedGroups);
 
-      // Cari grup di blok target: belum penuh DAN belum dipakai email ini
-      let picked = targetBlock.find(
-        (g) => groupSlots[g] < maxPerGroup && !usedSet.has(g),
-      );
+      let picked = targetBlock.find((g) => groupSlots[g] < maxPerGroup && !usedSet.has(g));
 
-      // FIX Bug 2, Fallback 1: blok target penuh → coba blok lainnya
-      // TETAP cek usedGroups (tidak abaikan constraint email)
       if (!picked) {
         const otherBlock = targetBlock === BLOCK_1 ? BLOCK_2 : BLOCK_1;
-        picked = otherBlock.find(
-          (g) => groupSlots[g] < maxPerGroup && !usedSet.has(g),
-        );
+        picked = otherBlock.find((g) => groupSlots[g] < maxPerGroup && !usedSet.has(g));
       }
 
-      // FIX Bug 2, Fallback 2: semua grup sudah dipakai email ini
-      // → pilih grup paling sedikit isinya yang masih ada slot
-      // (absolute fallback, hanya jika jumlah tim melebihi kapasitas normal)
       if (!picked) {
         picked = [...BLOCK_1, ...BLOCK_2]
           .filter((g) => groupSlots[g] < maxPerGroup)
-          .reduce(
-            (best, g) =>
-              best === null || groupSlots[g] < groupSlots[best] ? g : best,
-            null,
-          );
+          .reduce((best, g) => best === null || groupSlots[g] < groupSlots[best] ? g : best, null);
       }
 
-      // Jika semua penuh (total tim > kapasitas), assign ke mana pun
       if (!picked) {
         picked = [...BLOCK_1, ...BLOCK_2].reduce(
-          (best, g) => (groupSlots[g] < groupSlots[best] ? g : best),
-          "A",
+          (best, g) => (groupSlots[g] < groupSlots[best] ? g : best), "A"
         );
       }
 
@@ -2065,10 +1955,7 @@ function autoAssignGroups(entries) {
 
 function importFromExcel(file) {
   if (typeof XLSX === "undefined") {
-    toast(
-      "Library Excel belum dimuat. Pastikan SheetJS sudah di-include.",
-      "error",
-    );
+    toast("Library Excel belum dimuat. Pastikan SheetJS sudah di-include.", "error");
     return;
   }
 
@@ -2079,57 +1966,30 @@ function importFromExcel(file) {
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
 
-      if (!rows.length) {
-        toast("File Excel kosong", "error");
-        return;
-      }
+      if (!rows.length) { toast("File Excel kosong", "error"); return; }
 
       const header = rows[0].map((h) => String(h).trim());
-
-      // Cari kolom "Nama Tim" dan "Email Address"
-      const nameColIdx = header.findIndex(
-        (h) => h.toLowerCase() === "nama tim",
-      );
-      const emailColIdx = header.findIndex(
-        (h) => h.toLowerCase() === "email address",
-      );
+      const nameColIdx = header.findIndex((h) => h.toLowerCase() === "nama tim");
+      const emailColIdx = header.findIndex((h) => h.toLowerCase() === "email address");
 
       if (nameColIdx === -1) {
-        toast(
-          'Kolom "Nama Tim" tidak ditemukan. Pastikan header kolom sudah benar.',
-          "error",
-        );
+        toast('Kolom "Nama Tim" tidak ditemukan. Pastikan header kolom sudah benar.', "error");
         return;
       }
 
-      // Ambil data dari baris (skip header baris 0)
-      const rawEntries = rows
-        .slice(1)
+      const rawEntries = rows.slice(1)
         .map((r) => ({
           name: String(r[nameColIdx] || "").trim(),
-          email:
-            emailColIdx !== -1
-              ? String(r[emailColIdx] || "")
-                  .trim()
-                  .toLowerCase()
-              : "",
+          email: emailColIdx !== -1 ? String(r[emailColIdx] || "").trim().toLowerCase() : "",
         }))
         .filter((e) => e.name.length > 0);
 
-      if (!rawEntries.length) {
-        toast("Tidak ada data tim ditemukan", "error");
-        return;
-      }
+      if (!rawEntries.length) { toast("Tidak ada data tim ditemukan", "error"); return; }
 
-      // Generate tag unik per entry
       const usedTags = new Set();
-      rawEntries.forEach((e) => {
-        e.tag = uniqueTag(generateTag(e.name), usedTags);
-      });
+      rawEntries.forEach((e) => { e.tag = uniqueTag(generateTag(e.name), usedTags); });
 
-      // Auto-assign grup dengan aturan email-separation
       const assigned = autoAssignGroups(rawEntries);
-
       openImportPreviewModal(assigned, file.name, emailColIdx !== -1);
     } catch (err) {
       console.error(err);
@@ -2139,11 +1999,6 @@ function importFromExcel(file) {
   reader.readAsArrayBuffer(file);
 }
 
-/* ============================================================
-   PATCH: openImportPreviewModal — Tampilan lebih rapi
-   Ganti fungsi openImportPreviewModal di admin.js dengan ini
-   ============================================================ */
-
 function openImportPreviewModal(entries, fileName, hasEmail) {
   const emailMap = {};
   entries.forEach((e) => {
@@ -2152,9 +2007,7 @@ function openImportPreviewModal(entries, fileName, hasEmail) {
     if (!emailMap[em]) emailMap[em] = [];
     emailMap[em].push(e);
   });
-  const multiSlotEmails = Object.entries(emailMap).filter(
-    ([, teams]) => teams.length > 1,
-  );
+  const multiSlotEmails = Object.entries(emailMap).filter(([, teams]) => teams.length > 1);
 
   const activeGroupSet = new Set(entries.map((e) => e.assignedGroup));
   const activeGroupCount = activeGroupSet.size;
@@ -2168,8 +2021,6 @@ function openImportPreviewModal(entries, fileName, hasEmail) {
     "📥 Preview Import Tim dari Excel",
     `
     <div class="import-preview-wrap">
-
-      <!-- Summary -->
       <div class="import-summary">
         <div class="import-summary-item">
           <span class="import-summary-val">${entries.length}</span>
@@ -2184,60 +2035,37 @@ function openImportPreviewModal(entries, fileName, hasEmail) {
           <span class="import-summary-lbl">Email multi-slot</span>
         </div>
       </div>
-
-      <!-- Info -->
       <div class="import-info-box">
         ✅ <strong>Tag & Grup sudah di-generate otomatis.</strong><br>
-        ${
-          hasEmail
-            ? `Tim dari email yang sama dipisah ke <strong>grup yang berbeda</strong>.`
-            : `⚠️ Kolom Email tidak ditemukan — grup di-assign round-robin.`
-        }
+        ${hasEmail ? `Tim dari email yang sama dipisah ke <strong>grup yang berbeda</strong>.` : `⚠️ Kolom Email tidak ditemukan — grup di-assign round-robin.`}
         <br>Anda tetap bisa edit manual via ✏️ Edit Tim setelah import.
       </div>
-
-      <!-- Multi-slot section -->
-      ${
-        multiSlotEmails.length
-          ? `
+      ${multiSlotEmails.length ? `
         <div style="background:rgba(255,171,0,0.06);border:1px solid rgba(255,171,0,0.25);border-radius:10px;padding:14px 16px;">
-          <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#ffab00;margin-bottom:10px;">
-            📧 Pendaftar Multi-Slot
-          </div>
-          ${multiSlotEmails
-            .map(
-              ([email, teams]) => `
+          <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#ffab00;margin-bottom:10px;">📧 Pendaftar Multi-Slot</div>
+          ${multiSlotEmails.map(([email, teams]) => `
             <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.06);">
               <div style="font-size:0.78rem;color:var(--text-tertiary);margin-bottom:6px;">📨 ${email}</div>
               <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                ${teams
-                  .map((t) => {
-                    const bc = blockColor(t.assignedGroup);
-                    return `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:${bc.bg};font-size:0.78rem;">
+                ${teams.map((t) => {
+                  const bc = blockColor(t.assignedGroup);
+                  return `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:${bc.bg};font-size:0.78rem;">
                     <span style="font-weight:700;color:var(--text-primary)">${t.name}</span>
                     <span style="color:${bc.text};font-size:0.68rem;font-weight:700;">Grup ${t.assignedGroup}</span>
                   </span>`;
-                  })
-                  .join("")}
+                }).join("")}
               </div>
             </div>
-          `,
-            )
-            .join("")}
-        </div>`
-          : ""
-      }
-
-      <!-- Daftar tim -->
+          `).join("")}
+        </div>` : ""}
       <div class="import-preview-list">
         <div style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">
           Daftar Tim (${entries.length})
         </div>
         <div class="import-preview-scroll">
-          ${entries
-            .map((e, i) => {
-              const bc = blockColor(e.assignedGroup);
-              return `
+          ${entries.map((e, i) => {
+            const bc = blockColor(e.assignedGroup);
+            return `
             <div class="import-preview-row">
               <span class="import-preview-num">${i + 1}</span>
               <span class="import-preview-name">${e.name}</span>
@@ -2246,11 +2074,9 @@ function openImportPreviewModal(entries, fileName, hasEmail) {
               </span>
               ${e.email ? `<span style="font-size:0.68rem;color:var(--text-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;" title="${e.email}">${e.email}</span>` : ""}
             </div>`;
-            })
-            .join("")}
+          }).join("")}
         </div>
       </div>
-
       <div class="modal-actions">
         <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
         <button class="btn btn-primary" onclick="confirmImportTeams(${JSON.stringify(entries).replace(/"/g, "&quot;")})">
@@ -2264,7 +2090,6 @@ function openImportPreviewModal(entries, fileName, hasEmail) {
 
 window.confirmImportTeams = function (entries) {
   const data = getData();
-
   data.teams = entries.map((e, i) => ({
     id: "t" + Date.now() + i,
     name: e.name,
@@ -2274,15 +2099,11 @@ window.confirmImportTeams = function (entries) {
   }));
   data.matches = [];
   data.bracket = { r16: [], qf: [], sf: [], bronze: [], final: [] };
-
   saveData(data);
   closeModal();
   switchTab("teams");
   renderAdmin();
-  toast(
-    `✅ ${entries.length} tim berhasil diimport dengan Tag & Grup otomatis!`,
-    "success",
-  );
+  toast(`✅ ${entries.length} tim berhasil diimport dengan Tag & Grup otomatis!`, "success");
 };
 
 /* ============ MODAL ============ */
@@ -2297,7 +2118,6 @@ window.closeModal = function () {
 };
 
 /* ============ SETTINGS ============ */
-
 function getSettings() {
   try {
     const s = localStorage.getItem("mlwc_settings");
@@ -2328,7 +2148,7 @@ function applyLogo(dataUrl) {
 
 async function initSettingsOnLoad() {
   const settings = await getSettingsAsync();
-  saveSettingsToStorage(settings); // cache lokal
+  saveSettingsToStorage(settings);
   applyTournamentName(settings.tournamentName);
   if (settings.logoDataUrl) applyLogo(settings.logoDataUrl);
 }
@@ -2370,7 +2190,6 @@ async function renderSettingsTab() {
     logoInput.onchange = handleLogoUpload;
   }
 
-  // Bind tombol — pakai onclick agar tidak double-bind setiap render
   const saveBtn = document.getElementById("saveSettingsBtn");
   if (saveBtn) saveBtn.onclick = saveSettings;
   const selResetBtn = document.getElementById("selectiveResetBtn");
@@ -2400,10 +2219,7 @@ function handleLogoUpload(e) {
     const placeholder = document.getElementById("logoPlaceholder");
     const removeBtn = document.getElementById("logoRemoveBtn");
     const logoArea = document.getElementById("logoUploadArea");
-    if (preview) {
-      preview.src = ev.target.result;
-      preview.classList.remove("hidden");
-    }
+    if (preview) { preview.src = ev.target.result; preview.classList.remove("hidden"); }
     if (placeholder) placeholder.classList.add("hidden");
     if (removeBtn) removeBtn.style.display = "inline-flex";
     if (logoArea) logoArea.dataset.pendingLogo = ev.target.result;
@@ -2416,10 +2232,7 @@ window.removeLogo = function () {
   const placeholder = document.getElementById("logoPlaceholder");
   const removeBtn = document.getElementById("logoRemoveBtn");
   const logoArea = document.getElementById("logoUploadArea");
-  if (preview) {
-    preview.src = "";
-    preview.classList.add("hidden");
-  }
+  if (preview) { preview.src = ""; preview.classList.add("hidden"); }
   if (placeholder) placeholder.classList.remove("hidden");
   if (removeBtn) removeBtn.style.display = "none";
   if (logoArea) logoArea.dataset.pendingLogo = "";
@@ -2435,8 +2248,8 @@ async function saveSettings() {
   }
   const maxDisplay = document.getElementById("maxTeamsDisplay");
   if (maxDisplay) settings.maxTeamsPerGroup = parseInt(maxDisplay.textContent) || 4;
-  saveSettingsToStorage(settings);         // tetap simpan lokal sebagai cache
-  await saveSettingsAsync(settings);       // simpan ke Firestore
+  saveSettingsToStorage(settings);
+  await saveSettingsAsync(settings);
   applyTournamentName(settings.tournamentName);
   applyLogo(settings.logoDataUrl);
   toast("Pengaturan berhasil disimpan ✅", "success");
@@ -2488,8 +2301,7 @@ function openSelectiveResetModal() {
   const hasResults = data.matches.some((m) => m.played);
   const hasMatches = data.matches.length > 0;
   const hasBracket = data.bracket?.r16?.length > 0;
-  const hasBracketResults =
-    hasBracket && getAllBracketMatches(data).some((m) => m.played);
+  const hasBracketResults = hasBracket && getAllBracketMatches(data).some((m) => m.played);
   const hasTimeline = !!data.timeline;
   const hasTeams = data.teams.length > 0;
 
@@ -2551,32 +2363,17 @@ function updateResetPreview() {
   doBtn.disabled = false;
   preview.style.display = "block";
   const impacts = [];
-  if (checked.includes("reset-results"))
-    impacts.push(
-      `• ${data.matches.filter((m) => m.played).length} hasil match grup dihapus`,
-    );
-  if (checked.includes("reset-schedule"))
-    impacts.push(`• ${data.matches.length} jadwal & semua hasil grup dihapus`);
-  if (checked.includes("reset-bracket-results"))
-    impacts.push(`• Skor & pemenang bracket direset`);
-  if (checked.includes("reset-bracket"))
-    impacts.push(`• Bracket playoff dihapus sepenuhnya`);
-  if (checked.includes("reset-timeline"))
-    impacts.push(`• Timeline dikembalikan ke default`);
-  if (checked.includes("reset-teams"))
-    impacts.push(`• ${data.teams.length} tim, jadwal & bracket dihapus`);
-  list.innerHTML = impacts
-    .map(
-      (i) =>
-        `<div style="font-size:0.8rem;color:var(--text-secondary);padding:2px 0">${i}</div>`,
-    )
-    .join("");
+  if (checked.includes("reset-results")) impacts.push(`• ${data.matches.filter((m) => m.played).length} hasil match grup dihapus`);
+  if (checked.includes("reset-schedule")) impacts.push(`• ${data.matches.length} jadwal & semua hasil grup dihapus`);
+  if (checked.includes("reset-bracket-results")) impacts.push(`• Skor & pemenang bracket direset`);
+  if (checked.includes("reset-bracket")) impacts.push(`• Bracket playoff dihapus sepenuhnya`);
+  if (checked.includes("reset-timeline")) impacts.push(`• Timeline dikembalikan ke default`);
+  if (checked.includes("reset-teams")) impacts.push(`• ${data.teams.length} tim, jadwal & bracket dihapus`);
+  list.innerHTML = impacts.map((i) => `<div style="font-size:0.8rem;color:var(--text-secondary);padding:2px 0">${i}</div>`).join("");
 }
 
 function getCheckedResets() {
-  return [...document.querySelectorAll(".selective-check:checked")].map(
-    (cb) => cb.id,
-  );
+  return [...document.querySelectorAll(".selective-check:checked")].map((cb) => cb.id);
 }
 
 window.executeSelectiveReset = function () {
@@ -2590,51 +2387,37 @@ window.executeSelectiveReset = function () {
     "reset-timeline": "timeline",
     "reset-teams": "semua tim",
   };
-  if (
-    !confirm(
-      `Reset: ${checked.map((id) => labels[id]).join(", ")}? Tidak bisa dibatalkan.`,
-    )
-  )
-    return;
-  const data = getData();
-  if (checked.includes("reset-teams")) {
-    data.teams = [];
-    data.matches = [];
-    data.bracket = { r16: [], qf: [], sf: [], bronze: [], final: [] };
-  } else {
-    if (checked.includes("reset-schedule")) {
-      data.matches = [];
-    } else if (checked.includes("reset-results")) {
-      data.matches.forEach((m) => {
-        m.played = false;
-        m.scoreA = null;
-        m.scoreB = null;
-      });
-    }
-    if (checked.includes("reset-bracket")) {
-      data.bracket = { r16: [], qf: [], sf: [], bronze: [], final: [] };
-    } else if (checked.includes("reset-bracket-results")) {
-      getAllBracketMatches(data).forEach((m) => {
-        m.played = false;
-        m.scoreA = null;
-        m.scoreB = null;
-        m.winner = null;
-      });
-      ["qf", "sf", "bronze", "final"].forEach((round) => {
-        data.bracket?.[round]?.forEach((m) => {
-          m.teamA = null;
-          m.teamB = null;
-        });
-      });
-    }
-  }
-  if (checked.includes("reset-timeline")) data.timeline = DEFAULT_TIMELINE;
-  saveData(data);
-  closeModal();
-  renderAdmin();
-  toast(
-    `Reset selesai: ${checked.map((id) => labels[id]).join(", ")}.`,
-    "success",
+
+  confirmModal(
+    `Reset: <strong>${checked.map((id) => labels[id]).join(", ")}</strong>? Aksi ini tidak bisa dibatalkan.`,
+    () => {
+      const data = getData();
+      if (checked.includes("reset-teams")) {
+        data.teams = [];
+        data.matches = [];
+        data.bracket = { r16: [], qf: [], sf: [], bronze: [], final: [] };
+      } else {
+        if (checked.includes("reset-schedule")) {
+          data.matches = [];
+        } else if (checked.includes("reset-results")) {
+          data.matches.forEach((m) => { m.played = false; m.scoreA = null; m.scoreB = null; });
+        }
+        if (checked.includes("reset-bracket")) {
+          data.bracket = { r16: [], qf: [], sf: [], bronze: [], final: [] };
+        } else if (checked.includes("reset-bracket-results")) {
+          getAllBracketMatches(data).forEach((m) => { m.played = false; m.scoreA = null; m.scoreB = null; m.winner = null; });
+          ["qf", "sf", "bronze", "final"].forEach((round) => {
+            data.bracket?.[round]?.forEach((m) => { m.teamA = null; m.teamB = null; });
+          });
+        }
+      }
+      if (checked.includes("reset-timeline")) data.timeline = DEFAULT_TIMELINE;
+      saveData(data);
+      closeModal();
+      renderAdmin();
+      toast(`Reset selesai: ${checked.map((id) => labels[id]).join(", ")}.`, "success");
+    },
+    { title: "Reset Selektif", confirmText: "Ya, Reset", type: "danger" }
   );
 };
 
