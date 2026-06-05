@@ -497,7 +497,10 @@ function renderStandings(data) {
       <tr class="${i < 2 ? "qualified" : ""}">
         <td class="team-name-cell">
           <span class="team-rank-num">${i + 1}</span>
-          <span>${t.name}</span>
+          <div class="team-name-wrap">
+            <span class="team-standing-name">${t.name}</span>
+            ${t.tag ? `<span class="standings-tag">${t.tag}</span>` : ''}
+          </div>
           ${i < 2 ? '<span class="qualify-badge">✓ Lolos</span>' : ''}
         </td>
         <td class="tag-cell"><span class="standings-tag">${t.tag || '-'}</span></td>
@@ -515,7 +518,7 @@ function renderStandings(data) {
           <thead>
             <tr>
               <th class="th-team">Tim</th>
-              <th title="Tag Tim">Tag</th>
+              <th class="tag-col-header" title="Tag Tim">Tag</th>
               <th title="Match Dimainkan">M</th>
               <th title="Menang" class="col-win">W</th>
               <th title="Seri">D</th>
