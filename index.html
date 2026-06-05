@@ -4,10 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EXPLORA 2026 - Mobile Legends Tournament</title>
-    <meta
-      name="description"
-      content="EXPLORA 2026 - Tournament tracker resmi dengan jadwal, klasemen, bracket dan statistik tim."
-    />
+    <meta name="description" content="EXPLORA 2026 - Tournament tracker resmi dengan jadwal, klasemen, bracket dan statistik tim." />
     <link rel="stylesheet" href="./css/style.css" />
   </head>
 
@@ -16,28 +13,19 @@
     <header class="navbar">
       <div class="nav-inner">
         <a href="#home" class="logo">
-          <img
-            src="./assets/img/Logo.png"
-            alt="EXPLORA 2026 Logo"
-            class="logo-img"
-            style="height: 40px"
-          />
+          <img src="./assets/img/Logo.png" alt="EXPLORA 2026 Logo" class="logo-img" style="height: 40px" />
         </a>
         <button class="hamburger" id="hamburger" aria-label="Menu">
           <span></span><span></span><span></span>
         </button>
         <nav class="nav-links" id="navLinks">
-          <a href="#home" class="nav-link active" data-section="home">Home</a>
-          <a href="#schedule" class="nav-link" data-section="schedule"
-            >Jadwal</a
-          >
-          <a href="#standings" class="nav-link" data-section="standings"
-            >Klasemen</a
-          >
-          <a href="#results" class="nav-link" data-section="results">Hasil</a>
-          <a href="#bracket" class="nav-link" data-section="bracket">Bracket</a>
-          <a href="#teams" class="nav-link" data-section="teams">Tim</a>
-          <a href="#stats" class="nav-link" data-section="stats">Statistik</a>
+          <a href="#home"      class="nav-link active" data-section="home">Home</a>
+          <a href="#schedule"  class="nav-link" data-section="schedule">Jadwal</a>
+          <a href="#standings" class="nav-link" data-section="standings">Klasemen</a>
+          <a href="#results"   class="nav-link" data-section="results">Hasil</a>
+          <a href="#bracket"   class="nav-link" data-section="bracket">Bracket</a>
+          <a href="#teams"     class="nav-link" data-section="teams">Tim</a>
+          <a href="#stats"     class="nav-link" data-section="stats">Statistik</a>
           <a href="admin.html" class="nav-link admin-btn">Admin</a>
         </nav>
       </div>
@@ -56,18 +44,10 @@
           <a href="#schedule" class="btn btn-ghost">Jadwal Hari Ini</a>
         </div>
         <div class="countdown" id="countdown">
-          <div class="cd-item">
-            <span id="cd-days">00</span><small>Hari</small>
-          </div>
-          <div class="cd-item">
-            <span id="cd-hours">00</span><small>Jam</small>
-          </div>
-          <div class="cd-item">
-            <span id="cd-mins">00</span><small>Menit</small>
-          </div>
-          <div class="cd-item">
-            <span id="cd-secs">00</span><small>Detik</small>
-          </div>
+          <div class="cd-item"><span id="cd-days">00</span><small>Hari</small></div>
+          <div class="cd-item"><span id="cd-hours">00</span><small>Jam</small></div>
+          <div class="cd-item"><span id="cd-mins">00</span><small>Menit</small></div>
+          <div class="cd-item"><span id="cd-secs">00</span><small>Detik</small></div>
         </div>
         <p class="cd-label">Menuju Grand Final</p>
       </div>
@@ -79,15 +59,16 @@
         <h2>Jadwal Pertandingan</h2>
         <p>Pertandingan yang belum dimainkan.</p>
       </div>
-      <div class="filter-bar">
-        <input
-          type="text"
-          id="searchSchedule"
-          placeholder="🔍 Cari tim..."
-          class="input"
-        />
-        <select id="filterGroup" class="input">
-          <option value="">Semua Grup</option>
+      <div class="filter-bar filter-bar--schedule">
+        <input type="text" id="searchSchedule" placeholder="🔍 Cari tim..." class="input" />
+        <select id="filterScheduleStage" class="input">
+          <option value="">Semua Tahap</option>
+          <option value="group">Babak Grup</option>
+          <option value="r16">16 Besar</option>
+          <option value="qf">8 Besar</option>
+          <option value="sf">Semifinal</option>
+          <option value="bronze">Perebutan Juara 3</option>
+          <option value="final">Grand Final</option>
         </select>
       </div>
       <div id="scheduleList" class="match-grid"></div>
@@ -102,6 +83,17 @@
       <div id="standingsWrap" class="standings-grid"></div>
     </section>
 
+    <!-- ===== BRACKET ===== -->
+    <section id="bracket" class="section reveal">
+      <div class="section-head">
+        <h2>Bracket Playoff</h2>
+        <p>16 Besar → 8 Besar → Semi Final → Grand Final (BO3)</p>
+      </div>
+      <div class="bracket-scroll">
+        <div id="bracketWrap" class="bracket-container"></div>
+      </div>
+    </section>
+
     <!-- ===== HASIL ===== -->
     <section id="results" class="section reveal">
       <div class="section-head">
@@ -109,12 +101,7 @@
         <p>Rangkuman skor terbaru dari semua tahap.</p>
       </div>
       <div class="filter-bar filter-bar--results">
-        <input
-          type="text"
-          id="searchResults"
-          placeholder="🔍 Cari tim..."
-          class="input"
-        />
+        <input type="text" id="searchResults" placeholder="🔍 Cari tim..." class="input" />
         <select id="filterResultGroup" class="input">
           <option value="">Semua Grup</option>
         </select>
@@ -131,29 +118,13 @@
       <div id="resultsList" class="match-grid"></div>
     </section>
 
-    <!-- ===== BRACKET ===== -->
-    <section id="bracket" class="section reveal">
-      <div class="section-head">
-        <h2>Bracket Playoff</h2>
-        <p>16 Besar → 8 Besar → Semi Final → Grand Final (BO3)</p>
-      </div>
-      <div class="bracket-scroll">
-        <div id="bracketWrap" class="bracket"></div>
-      </div>
-    </section>
-
     <!-- ===== TIM ===== -->
     <section id="teams" class="section reveal">
       <div class="section-head">
         <h2>Tim Peserta</h2>
-        <p>32 tim terbaik dari seluruh dunia.</p>
+        <p id="teamsSubtitle">Tim yang terdaftar dalam turnamen.</p>
       </div>
-      <input
-        type="text"
-        id="searchTeams"
-        placeholder="🔍 Cari nama tim..."
-        class="input mb-md"
-      />
+      <input type="text" id="searchTeams" placeholder="🔍 Cari nama tim..." class="input mb-md" />
       <div id="teamsGrid" class="teams-grid"></div>
     </section>
 

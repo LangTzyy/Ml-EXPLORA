@@ -1173,9 +1173,19 @@ function openMatchupEditModal(matchId) {
     if (match.teamB) bracketTeamIds.add(match.teamB);
   });
 
+  // Tim yang sudah terlibat di match yang sudah played → tidak bisa dipilih
+  const playedTeamIds = new Set();
+  all.forEach((match) => {
+    if (match.played && match.id !== matchId) {
+      if (match.teamA) playedTeamIds.add(match.teamA);
+      if (match.teamB) playedTeamIds.add(match.teamB);
+    }
+  });
+
   const teamOptions = (currentId) =>
     data.teams
       .filter((t) => bracketTeamIds.has(t.id))
+      .filter((t) => !playedTeamIds.has(t.id) || t.id === currentId) // sembunyikan tim dari match played
       .map(
         (t) =>
           `<option value="${t.id}" ${t.id === currentId ? "selected" : ""}>${t.name} (${t.tag})</option>`,
@@ -1197,30 +1207,41 @@ function openMatchupEditModal(matchId) {
         </div>
         ${hasResult ? `<div class="matchup-warn">⚠️ Match ini sudah punya hasil (${m.scoreA}-${m.scoreB}). Mengubah matchup akan mereset hasilnya.</div>` : ""}
       </div>
-      <div class="matchup-option-card" id="optSwapCard">
-        <div class="matchup-option-title">🔄 Swap Posisi Tim</div>
-        <div class="matchup-option-desc">Tukar posisi Tim A dan Tim B (Slot atas ↔ Slot bawah). Tim tidak berubah, hanya posisinya.</div>
-        <button class="btn btn-primary" onclick="doSwapMatchup('${matchId}')">🔄 Swap Sekarang</button>
-      </div>
-      <div class="matchup-option-card" id="optEditCard">
-        <div class="matchup-option-title">🔁 Ganti Tim di Match</div>
-        <div class="matchup-option-desc">Pilih tim yang akan mengisi setiap slot. Tim dipilih dari tim yang sudah ada di bracket.</div>
-        <div class="matchup-selects">
-          <div>
-            <label>Slot Atas (Tim A)</label>
-            <select id="editTeamA" class="input">${teamOptions(m.teamA)}</select>
+      ${m.played ? `
+        <div class="matchup-option-card" style="opacity:0.5;pointer-events:none;">
+          <div class="matchup-option-title">🔄 Swap Posisi Tim</div>
+          <div class="matchup-warn">⚠️ Match sudah punya hasil. Tidak bisa di-swap.</div>
+        </div>
+        <div class="matchup-option-card" style="opacity:0.5;pointer-events:none;">
+          <div class="matchup-option-title">🔁 Ganti Tim di Match</div>
+          <div class="matchup-warn">⚠️ Match sudah punya hasil. Tidak bisa diedit.</div>
+        </div>
+      ` : `
+        <div class="matchup-option-card" id="optSwapCard">
+          <div class="matchup-option-title">🔄 Swap Posisi Tim</div>
+          <div class="matchup-option-desc">Tukar posisi Tim A dan Tim B (Slot atas ↔ Slot bawah). Tim tidak berubah, hanya posisinya.</div>
+          <button class="btn btn-primary" onclick="doSwapMatchup('${matchId}')">🔄 Swap Sekarang</button>
+        </div>
+        <div class="matchup-option-card" id="optEditCard">
+          <div class="matchup-option-title">🔁 Ganti Tim di Match</div>
+          <div class="matchup-option-desc">Pilih tim yang akan mengisi setiap slot. Tim dipilih dari tim yang sudah ada di bracket.</div>
+          <div class="matchup-selects">
+            <div>
+              <label>Slot Atas (Tim A)</label>
+              <select id="editTeamA" class="input">${teamOptions(m.teamA)}</select>
+            </div>
+            <div class="matchup-vs-sep-sm">VS</div>
+            <div>
+              <label>Slot Bawah (Tim B)</label>
+              <select id="editTeamB" class="input">${teamOptions(m.teamB)}</select>
+            </div>
           </div>
-          <div class="matchup-vs-sep-sm">VS</div>
-          <div>
-            <label>Slot Bawah (Tim B)</label>
-            <select id="editTeamB" class="input">${teamOptions(m.teamB)}</select>
+          <div class="modal-actions" style="margin-top:14px">
+            <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+            <button class="btn btn-primary" onclick="doEditMatchup('${matchId}')">💾 Simpan Perubahan</button>
           </div>
         </div>
-        <div class="modal-actions" style="margin-top:14px">
-          <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
-          <button class="btn btn-primary" onclick="doEditMatchup('${matchId}')">💾 Simpan Perubahan</button>
-        </div>
-      </div>
+      `}
     </div>
   `,
   );
@@ -1263,32 +1284,53 @@ window.doEditMatchup = function (matchId) {
   const m = all.find((x) => x.id === matchId);
   if (!m) return;
 
+  if (m.played) {
+    toast("Match ini sudah punya hasil dan tidak bisa diedit.", "error");
+    return;
+  }
+
   const newA = document.getElementById("editTeamA").value;
   const newB = document.getElementById("editTeamB").value;
 
-  if (!newA || !newB) {
-    toast("Pilih tim untuk kedua slot", "error");
-    return;
-  }
-  if (newA === newB) {
-    toast("Tim A dan Tim B tidak boleh sama", "error");
-    return;
+  if (!newA || !newB) { toast("Pilih tim untuk kedua slot", "error"); return; }
+  if (newA === newB) { toast("Tim A dan Tim B tidak boleh sama", "error"); return; }
+
+  // Cari tim lama yang akan digantikan
+  const oldA = m.teamA;
+  const oldB = m.teamB;
+
+  // Jika Tim A diganti, tukar posisi tim lama ke match asal tim baru
+  if (newA !== oldA) {
+    const donorMatch = all.find((x) => x.id !== matchId && (x.teamA === newA || x.teamB === newA));
+    if (donorMatch) {
+      if (donorMatch.teamA === newA) donorMatch.teamA = oldA;
+      else donorMatch.teamB = oldA;
+      // Reset hasil donor match jika sudah dimainkan
+      if (donorMatch.played) {
+        donorMatch.played = false; donorMatch.scoreA = null;
+        donorMatch.scoreB = null; donorMatch.winner = null;
+      }
+    }
   }
 
-  const changed = newA !== m.teamA || newB !== m.teamB;
+  if (newB !== oldB) {
+    const donorMatch = all.find((x) => x.id !== matchId && (x.teamA === newB || x.teamB === newB));
+    if (donorMatch) {
+      if (donorMatch.teamA === newB) donorMatch.teamA = oldB;
+      else donorMatch.teamB = oldB;
+      if (donorMatch.played) {
+        donorMatch.played = false; donorMatch.scoreA = null;
+        donorMatch.scoreB = null; donorMatch.winner = null;
+      }
+    }
+  }
 
   m.teamA = newA;
   m.teamB = newB;
 
-  if (changed && m.played) {
-    m.played = false;
-    m.scoreA = null;
-    m.scoreB = null;
-    m.winner = null;
-    toast(
-      "Matchup diperbarui. Hasil match direset karena ada perubahan tim.",
-      "warning",
-    );
+  if (m.played) {
+    m.played = false; m.scoreA = null; m.scoreB = null; m.winner = null;
+    toast("Matchup diperbarui. Hasil match direset.", "warning");
   } else {
     toast("Matchup berhasil diperbarui!", "success");
   }

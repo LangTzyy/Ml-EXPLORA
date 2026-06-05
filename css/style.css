@@ -2426,3 +2426,215 @@ select.input {
     display: none;
   }
 }
+
+/* ============================================================
+   TAMBAHAN & PERBAIKAN STYLE — append ke style.css
+   ============================================================ */
+
+/* ===== FILTER BAR SCHEDULE ===== */
+.filter-bar--schedule {
+  grid-template-columns: 2fr 1fr 1.5fr;
+}
+@media (max-width: 700px) {
+  .filter-bar--schedule { grid-template-columns: 1fr; }
+}
+
+/* ===== STANDINGS — KETERANGAN & VISUAL ===== */
+.standings-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  letter-spacing: 0.3px;
+}
+.standings-legend .legend-sep { color: var(--border-glow); }
+.standings-legend .pts-pos    { color: var(--success); font-weight: 600; }
+.standings-legend .pts-neg    { color: var(--danger);  font-weight: 600; }
+
+/* header kolom */
+.standings-table .th-team { text-align: left; }
+.standings-table .col-win  { color: var(--success); }
+.standings-table .col-lose { color: var(--danger); }
+
+/* nama tim di standings */
+.team-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+.team-rank-num {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  min-width: 14px;
+}
+.qualify-badge {
+  font-size: 0.58rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(0,255,136,0.12);
+  color: var(--success);
+  border: 1px solid rgba(0,255,136,0.25);
+  white-space: nowrap;
+}
+.pts-pos { color: var(--success); font-weight: 700; }
+.pts-neg { color: var(--danger);  font-weight: 700; }
+
+/* ===== TEAMS — tag label ===== */
+.team-tag-label {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* ===== BRACKET — NEW FLOW LAYOUT ===== */
+.bracket-container {
+  padding: 8px 0 20px;
+}
+
+.bracket-empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-tertiary);
+}
+.bracket-empty-icon {
+  font-size: 3.5rem;
+  margin-bottom: 16px;
+  opacity: 0.4;
+}
+.bracket-empty h4 {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.bracket-flow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  min-width: max-content;
+  padding: 8px 4px;
+}
+
+.bracket-stage-block {
+  min-width: 220px;
+  max-width: 240px;
+  flex-shrink: 0;
+}
+
+.bracket-stage-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(0,102,255,0.08);
+  border: 1px solid var(--border-light);
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: var(--font-primary);
+  color: var(--blue-electric);
+  letter-spacing: 0.5px;
+}
+.bracket-stage-header--final {
+  background: rgba(0,212,255,0.12);
+  border-color: rgba(0,212,255,0.3);
+  color: var(--blue-neon);
+  animation: finalHeaderGlow 3s ease-in-out infinite;
+}
+@keyframes finalHeaderGlow {
+  0%,100% { box-shadow: none; }
+  50%      { box-shadow: 0 0 16px rgba(0,212,255,0.2); }
+}
+.stage-icon { font-size: 1rem; }
+.stage-format {
+  margin-left: auto;
+  font-size: 0.62rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border-light);
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--text-muted);
+}
+
+.bracket-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* connector arrows between stages */
+.bracket-connector-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  width: 36px;
+  flex-shrink: 0;
+  gap: 0;
+  padding-top: 46px; /* offset untuk header */
+}
+.bracket-connector {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--border-glow);
+  font-size: 1.1rem;
+  position: relative;
+}
+.bracket-connector::after {
+  content: "›";
+  font-size: 1.4rem;
+  color: rgba(0,102,255,0.35);
+}
+
+/* Finals column (bronze + final stacked) */
+.bracket-finals-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 240px;
+  flex-shrink: 0;
+  margin-left: 36px;
+}
+
+.bracket-stage-block--bronze .bracket-stage-header {
+  background: rgba(100,60,20,0.15);
+  border-color: rgba(180,120,60,0.2);
+  color: #cd7f32;
+}
+.bracket-stage-block--final .bracket-stage-header {
+  background: rgba(0,212,255,0.1);
+  border-color: rgba(0,212,255,0.3);
+  color: var(--blue-neon);
+}
+
+/* bracket match card sudah ada, override spesifik */
+.bracket-match {
+  border-radius: var(--radius-sm);
+  overflow: visible;
+  padding: 0;
+}
+
+/* ===== MOBILE BRACKET — force horizontal scroll ===== */
+@media (max-width: 768px) {
+  .bracket-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .bracket-flow {
+    min-width: 900px;
+  }
+  .bracket-stage-block { min-width: 200px; max-width: 210px; }
+  .bracket-finals-col  { min-width: 210px; }
+}

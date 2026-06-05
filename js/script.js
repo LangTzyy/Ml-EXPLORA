@@ -1,10 +1,8 @@
 /* ============================================================
    script.js  —  EXPLORA Tournament Engine (Firestore version)
-   Semua localStorage sudah diganti dengan Firestore async calls.
-   Membutuhkan firebase.js di-load terlebih dahulu.
    ============================================================ */
 
-const AUTH_KEY = "mlwc_auth"; // sessionStorage saja (sesi login, bukan data)
+const AUTH_KEY = "mlwc_auth";
 
 /* ─── KONSTANTA ─────────────────────────────────────────────── */
 const GROUPS = ["A", "B", "C", "D", "E", "F", "G", "H"];
@@ -22,19 +20,16 @@ const LOGO_COLORS = [
 
 const DEFAULT_TIMELINE = [
   { id:"group",  icon:"⚔️", label:"Babak Grup",         desc:"Round robin semua grup",                        date:"2026-06-13", cssClass:"stage-group-ad" },
-  { id:"r16",    icon:"⚡",  label:"Babak 16 Besar",     desc:"Round of 16 (BO3)",                                   date:"2026-06-14", cssClass:"stage-r16"      },
-  { id:"qf",     icon:"🔥", label:"Babak 8 Besar",       desc:"Quarter Finals (BO3)",                                date:"2026-06-20", cssClass:"stage-qf"       },
-  { id:"sf",     icon:"🏅", label:"Semifinal",           desc:"Semi Finals (BO3)",                                   date:"2026-06-20", cssClass:"stage-sf"       },
-  { id:"bronze", icon:"🥉", label:"Perebutan Juara 3",   desc:"Match antara 2 tim yang kalah di Semifinal (BO3)",    date:"2026-06-21", cssClass:"stage-bronze"   },
-  { id:"final",  icon:"🏆", label:"Grand Final",         desc:"Perebutan Juara 1 & 2 (BO3)",                         date:"2026-06-21", cssClass:"stage-final"    },
+  { id:"r16",    icon:"⚡",  label:"Babak 16 Besar",     desc:"Round of 16 (BO3)",                             date:"2026-06-14", cssClass:"stage-r16"      },
+  { id:"qf",     icon:"🔥", label:"Babak 8 Besar",       desc:"Quarter Finals (BO3)",                          date:"2026-06-20", cssClass:"stage-qf"       },
+  { id:"sf",     icon:"🏅", label:"Semifinal",           desc:"Semi Finals (BO3)",                             date:"2026-06-20", cssClass:"stage-sf"       },
+  { id:"bronze", icon:"🥉", label:"Perebutan Juara 3",   desc:"Match antara 2 tim yang kalah di Semifinal (BO3)", date:"2026-06-21", cssClass:"stage-bronze"   },
+  { id:"final",  icon:"🏆", label:"Grand Final",         desc:"Perebutan Juara 1 & 2 (BO3)",                   date:"2026-06-21", cssClass:"stage-final"    },
 ];
 
 /* ============================================================
-   STORAGE HELPERS  —  semua async, baca/tulis ke Firestore
+   STORAGE HELPERS
    ============================================================ */
-
-/** Ambil data utama. Selalu async. */
-// JADI ini:
 let _cachedData = null;
 
 function getData() {
@@ -87,7 +82,7 @@ function generateGroupSchedule(teams) {
 }
 
 /* ============================================================
-   STANDINGS  (Win +1 | Draw 0 | Lose -1)
+   STANDINGS
    ============================================================ */
 function computeStandings(data) {
   const standings = {};
@@ -200,18 +195,18 @@ function statCard(label, value) {
   return `<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div></div>`;
 }
 
-/* ============================================================
-   LOADING STATE HELPER
-   Tampilkan spinner ringan saat data sedang di-fetch
-   ============================================================ */
 function showLoading(elementId) {
   const el = document.getElementById(elementId);
   if (el) el.innerHTML = `<div class="empty-state">⏳ Memuat data...</div>`;
 }
 
+/* Cek apakah turnamen sudah selesai (ada juara grand final) */
+function isTournamentFinished(data) {
+  return !!(data?.bracket?.final?.[0]?.winner);
+}
+
 /* ============================================================
-   PUBLIC PAGE  —  hanya jalan di index.html
-   Menggunakan real-time listener agar auto-update
+   PUBLIC PAGE
    ============================================================ */
 if (document.getElementById("scheduleList")) {
   document.addEventListener("DOMContentLoaded", initPublic);
@@ -227,13 +222,13 @@ async function initPublic() {
   showLoading("resultsList");
   showLoading("teamsGrid");
 
-  await initData(); // ← tunggu Firebase
-  const data = getData(); // ← ambil dari cache
+  await initData();
+  const data = getData();
   renderAll(data);
   startCountdown(data);
 
   onDataChange((freshData) => {
-    _cachedData = freshData; // update cache saat ada perubahan real-time
+    _cachedData = freshData;
     renderAll(freshData);
     startCountdown(freshData);
   });
@@ -257,7 +252,7 @@ function setupNav() {
   });
 }
 
-/* ─── RENDER ALL  (menerima data sebagai parameter) ─── */
+/* ─── RENDER ALL ─── */
 function renderAll(data) {
   renderSchedule(data);
   renderStandings(data);
@@ -274,21 +269,44 @@ function renderSchedule(data) {
   if (!wrap || !data) return;
   const tl     = getTimeline(data);
   const search = (document.getElementById("searchSchedule")?.value || "").toLowerCase();
-  const groupF = document.getElementById("filterGroup")?.value || "";
+  const stageF = document.getElementById("filterScheduleStage")?.value || "";
 
+  // Semua pertandingan grup yang belum dimainkan
   let list = data.matches.filter((m) => !m.played);
-  if (groupF)  list = list.filter((m) => m.group === groupF);
-  if (search)  list = list.filter((m) => {
+  if (search) list = list.filter((m) => {
     const a = teamById(m.teamA, data)?.name.toLowerCase() || "";
     const b = teamById(m.teamB, data)?.name.toLowerCase() || "";
     return a.includes(search) || b.includes(search);
   });
 
+  // Filter per tahap: kalau pilih "group" tampilkan list grup, lainnya kosong (bracket belum main)
+  if (stageF && stageF !== "group") {
+    list = []; // Jadwal bracket belum main ditampilkan dari bracket section
+  }
+
   if (!list.length) {
-    wrap.innerHTML = emptyState("✅","Semua pertandingan sudah selesai","Lihat hasil di bagian Hasil Pertandingan.");
+    // Tidak ada jadwal sama sekali (belum ada tim/match)
+    if (!data.teams.length || !data.matches.length) {
+      wrap.innerHTML = emptyState("📅", "Belum ada jadwal pertandingan", "Jadwal akan muncul setelah admin menginput data tim.");
+      return;
+    }
+    // Turnamen sudah selesai (ada juara)
+    if (isTournamentFinished(data)) {
+      wrap.innerHTML = emptyState("✅", "Semua pertandingan sudah selesai", "Lihat hasil lengkap di bagian Hasil Pertandingan.");
+      return;
+    }
+    // Semua match grup sudah dimainkan tapi turnamen belum selesai
+    const allGroupPlayed = data.matches.every(m => m.played);
+    if (allGroupPlayed) {
+      wrap.innerHTML = emptyState("⚡", "Babak Grup Selesai", "Turnamen dilanjutkan ke babak playoff. Lihat bracket di bawah.");
+      return;
+    }
+    // Filter aktif tapi tidak ada hasil
+    wrap.innerHTML = emptyState("🔍", "Tidak ada jadwal", "Coba ubah filter pencarian.");
     return;
   }
-  wrap.innerHTML = list.slice(0,60).map((m) => matchCardHtml(m, data, tl)).join("");
+
+  wrap.innerHTML = list.slice(0, 60).map((m) => matchCardHtml(m, data, tl)).join("");
 }
 
 function getMatchDateFromTimeline(match, tl) {
@@ -297,10 +315,10 @@ function getMatchDateFromTimeline(match, tl) {
 }
 
 function matchCardHtml(m, data, tl, showStatus = false) {
-  const a      = teamById(m.teamA, data);
-  const b      = teamById(m.teamB, data);
-  const winA   = m.played && m.scoreA > m.scoreB;
-  const winB   = m.played && m.scoreB > m.scoreA;
+  const a       = teamById(m.teamA, data);
+  const b       = teamById(m.teamB, data);
+  const winA    = m.played && m.scoreA > m.scoreB;
+  const winB    = m.played && m.scoreB > m.scoreA;
   const dateStr = tl ? getMatchDateFromTimeline(m, tl) : "";
   return `
     <div class="match-card">
@@ -336,9 +354,8 @@ function bracketResultCardHtml(m, data, stageLabel) {
     </div>`;
 }
 
-// JADI ini (pakai cache, tidak perlu async):
 function setupFilters() {
-  ["searchSchedule","filterGroup","filterStatus"].forEach((id) => {
+  ["searchSchedule","filterScheduleStage"].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", () => {
       renderSchedule(getData());
     });
@@ -370,21 +387,58 @@ function populateGroupFilter() {
 function renderStandings(data) {
   const wrap = document.getElementById("standingsWrap");
   if (!wrap || !data) return;
+
   const standings = computeStandings(data);
-  wrap.innerHTML = GROUPS.map((g) => {
+
+  // Hanya tampilkan grup yang memiliki tim
+  const activeGroups = GROUPS.filter(g => data.teams.some(t => t.group === g));
+
+  if (!activeGroups.length) {
+    wrap.innerHTML = emptyState("📋", "Belum ada klasemen", "Klasemen akan muncul setelah admin menginput tim.");
+    return;
+  }
+
+  wrap.innerHTML = activeGroups.map((g) => {
     const rows = standings[g].map((t, i) => `
-      <tr class="${i<2?"qualified":""}">
-        <td class="team"><span>${t.name}</span></td>
-        <td>${t.played}</td><td>${t.win}</td><td>${t.draw}</td><td>${t.lose}</td>
-        <td><b>${t.points}</b></td>
+      <tr class="${i < 2 ? "qualified" : ""}">
+        <td class="team-name-cell">
+          <span class="team-rank-num">${i + 1}</span>
+          <span>${t.name}</span>
+          ${i < 2 ? '<span class="qualify-badge">Lolos</span>' : ''}
+        </td>
+        <td>${t.played}</td>
+        <td class="col-win">${t.win}</td>
+        <td>${t.draw}</td>
+        <td class="col-lose">${t.lose}</td>
+        <td><b class="${t.points > 0 ? 'pts-pos' : t.points < 0 ? 'pts-neg' : ''}">${t.points > 0 ? '+' : ''}${t.points}</b></td>
       </tr>`).join("");
+
     return `
       <div class="group-card">
         <div class="group-title">GRUP ${g}</div>
         <table class="standings-table">
-          <thead><tr><th>Tim</th><th>M</th><th>W</th><th>D</th><th>L</th><th>Pts</th></tr></thead>
+          <thead>
+            <tr>
+              <th class="th-team">Tim</th>
+              <th title="Match Dimainkan">M</th>
+              <th title="Menang" class="col-win">W</th>
+              <th title="Seri">D</th>
+              <th title="Kalah" class="col-lose">L</th>
+              <th title="Poin">Pts</th>
+            </tr>
+          </thead>
           <tbody>${rows}</tbody>
         </table>
+        <div class="standings-legend">
+          <span>M: Match</span>
+          <span>W: Menang</span>
+          <span>D: Seri</span>
+          <span>L: Kalah</span>
+          <span class="legend-sep">•</span>
+          <span class="pts-pos">Menang +1</span>
+          <span>Seri 0</span>
+          <span class="pts-neg">Kalah −1</span>
+        </div>
       </div>`;
   }).join("");
 }
@@ -440,22 +494,75 @@ function renderBracket(elementId, data) {
   if (!wrap || !data) return;
   const br = data.bracket;
   if (!br || !br.r16 || !br.r16.length) {
-    wrap.innerHTML = `<div class="empty-state" style="margin:auto">
-      <div class="emo">🏆</div><h4>Bracket Belum Tersedia</h4>
-      <p>Bracket akan muncul setelah admin generate dari klasemen grup.</p></div>`;
+    wrap.innerHTML = `<div class="bracket-empty">
+      <div class="bracket-empty-icon">🏆</div>
+      <h4>Bracket Belum Tersedia</h4>
+      <p>Bracket akan muncul setelah admin generate dari klasemen grup.</p>
+    </div>`;
     return;
   }
-  wrap.innerHTML = `
-    ${roundColHtml("⚡ 16 Besar", br.r16, data)}
-    ${roundColHtml("🔥 8 Besar",  br.qf,  data)}
-    ${roundColHtml("🏅 Semifinal",br.sf,  data)}
-    ${roundColHtml("🥉 Juara 3",  br.bronze,data)}
-    ${roundColHtml("🏆 Grand Final",br.final,data,true)}`;
-}
 
-function roundColHtml(title, matches, data, isFinal=false) {
-  return `<div class="round-col"><div class="round-title">${title}</div>
-    ${matches.map((m,i)=>bracketMatchPublicHtml(m,i+1,data,isFinal)).join("")}</div>`;
+  wrap.innerHTML = `
+    <div class="bracket-flow">
+      <div class="bracket-stage-block">
+        <div class="bracket-stage-header">
+          <span class="stage-icon">⚡</span>
+          <span>16 Besar</span>
+          <span class="stage-format">BO3</span>
+        </div>
+        <div class="bracket-col">
+          ${br.r16.map((m,i) => bracketMatchPublicHtml(m, i+1, data)).join("")}
+        </div>
+      </div>
+      <div class="bracket-connector-col">
+        ${Array.from({length:4}, () => '<div class="bracket-connector"></div>').join("")}
+      </div>
+      <div class="bracket-stage-block">
+        <div class="bracket-stage-header">
+          <span class="stage-icon">🔥</span>
+          <span>8 Besar</span>
+          <span class="stage-format">BO3</span>
+        </div>
+        <div class="bracket-col">
+          ${br.qf.map((m,i) => bracketMatchPublicHtml(m, i+1, data)).join("")}
+        </div>
+      </div>
+      <div class="bracket-connector-col bracket-connector-col--sm">
+        ${Array.from({length:2}, () => '<div class="bracket-connector"></div>').join("")}
+      </div>
+      <div class="bracket-stage-block">
+        <div class="bracket-stage-header">
+          <span class="stage-icon">🏅</span>
+          <span>Semifinal</span>
+          <span class="stage-format">BO3</span>
+        </div>
+        <div class="bracket-col">
+          ${br.sf.map((m,i) => bracketMatchPublicHtml(m, i+1, data)).join("")}
+        </div>
+      </div>
+      <div class="bracket-finals-col">
+        <div class="bracket-stage-block bracket-stage-block--bronze">
+          <div class="bracket-stage-header">
+            <span class="stage-icon">🥉</span>
+            <span>Juara 3</span>
+            <span class="stage-format">BO3</span>
+          </div>
+          <div class="bracket-col">
+            ${br.bronze.map((m,i) => bracketMatchPublicHtml(m, i+1, data)).join("")}
+          </div>
+        </div>
+        <div class="bracket-stage-block bracket-stage-block--final">
+          <div class="bracket-stage-header bracket-stage-header--final">
+            <span class="stage-icon">🏆</span>
+            <span>Grand Final</span>
+            <span class="stage-format">BO3</span>
+          </div>
+          <div class="bracket-col">
+            ${br.final.map((m,i) => bracketMatchPublicHtml(m, i+1, data, true)).join("")}
+          </div>
+        </div>
+      </div>
+    </div>`;
 }
 
 function bracketMatchPublicHtml(m, idx, data, isFinal=false) {
@@ -464,7 +571,7 @@ function bracketMatchPublicHtml(m, idx, data, isFinal=false) {
   const winB = m.winner && m.winner===m.teamB;
   return `
     <div class="bracket-match ${isFinal?"final":""} ${m.winner?"bracket-match--done":""}">
-      <span class="bm-tag">M${idx} • BO3</span>
+      <span class="bm-tag">M${idx}</span>
       <div class="bm-row ${winA?"win":m.winner?"lose":""}">
         <div class="bm-team">${a?`<div class="bm-logo">${a.tag?.[0]||"?"}</div>`:'<div class="bm-logo tbd">?</div>'}<span>${a?.name||"TBD"}</span></div>
         <div class="bm-score ${winA?"bm-score--win":""}">${m.played?m.scoreA:"-"}</div>
@@ -486,11 +593,17 @@ function renderTeams(data) {
   const list = data.teams.filter((t) =>
     t.name.toLowerCase().includes(search) || t.tag.toLowerCase().includes(search)
   );
-  if (!list.length) { wrap.innerHTML = emptyState("🔍","Tim tidak ditemukan","Coba kata kunci lain."); return; }
+  if (!list.length) {
+    wrap.innerHTML = data.teams.length
+      ? emptyState("🔍","Tim tidak ditemukan","Coba kata kunci lain.")
+      : emptyState("👥","Belum ada tim","Tim akan muncul setelah admin menginput data.");
+    return;
+  }
   wrap.innerHTML = list.map((t) => `
     <div class="team-card">
       <div class="team-logo-placeholder">⚔</div>
       <h4>${t.name}</h4>
+      <span class="team-tag-label">${t.tag || ""}</span>
       <span class="team-group">Grup ${t.group}</span>
     </div>`).join("");
 }
@@ -569,7 +682,6 @@ function startCountdown(data) {
   }
 
   const labelEl = document.querySelector(".cd-label");
-  // Bersihkan interval sebelumnya jika ada
   if (window._countdownInterval) clearInterval(window._countdownInterval);
 
   const tick = () => {
