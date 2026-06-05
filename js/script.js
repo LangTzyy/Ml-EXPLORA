@@ -378,17 +378,13 @@ function bracketScheduleCardHtml(m, idx, data, stageLabel, format) {
       </div>
       <div class="match-row">
         <div class="match-team">
-          <div class="match-team-info">
-            <span class="match-team-name">${nameA}</span>
-            ${a?.tag ? `<span class="match-team-tag">${a.tag}</span>` : ""}
-          </div>
+          <span class="match-team-name">${nameA}</span>
+          ${a?.tag ? `<span class="match-team-tag">${a.tag}</span>` : ""}
         </div>
         <div class="match-score vs">VS</div>
         <div class="match-team right">
-          <div class="match-team-info right">
-            <span class="match-team-name">${nameB}</span>
-            ${b?.tag ? `<span class="match-team-tag">${b.tag}</span>` : ""}
-          </div>
+          <span class="match-team-name">${nameB}</span>
+          ${b?.tag ? `<span class="match-team-tag">${b.tag}</span>` : ""}
         </div>
       </div>
     </div>`;
@@ -409,24 +405,21 @@ function matchCardHtml(m, data, tl, showStatus = false) {
     <div class="match-card">
       <div class="match-meta">
         <span class="match-tag">Grup ${m.group} • BO1</span>
-        ${showStatus ? `<span class="match-tag ${m.played?"done":""}">${m.played?"✓ Selesai":"⏳ Belum"}</span>` : ""}
+        ${showStatus ? `<span class="match-tag ${m.played?"done":""}">${m.played?"✓ Selesai":"⏳ Menunggu"}</span>` : ""}
       </div>
       ${dateStr ? `<div class="match-date-row">📅 ${dateStr}</div>` : ""}
       <div class="match-row">
         <div class="match-team ${winA?"win":m.played?"lose":""}">
-          <div class="match-team-info">
-            <span class="match-team-name">${a?.name||"?"}</span>
-            ${a?.tag ? `<span class="match-team-tag">${a.tag}</span>` : ""}
-          </div>
+          <span class="match-team-name">${a?.name||"?"}</span>
+          ${a?.tag ? `<span class="match-team-tag">${a.tag}</span>` : ""}
         </div>
-        <div class="match-score ${m.played?"":"vs"}">${m.played?`${m.scoreA} - ${m.scoreB}`:"VS"}</div>
+        <div class="match-score ${m.played?"":"vs"}">${m.played?`${m.scoreA} – ${m.scoreB}`:"VS"}</div>
         <div class="match-team right ${winB?"win":m.played?"lose":""}">
-          <div class="match-team-info right">
-            <span class="match-team-name">${b?.name||"?"}</span>
-            ${b?.tag ? `<span class="match-team-tag">${b.tag}</span>` : ""}
-          </div>
+          <span class="match-team-name">${b?.name||"?"}</span>
+          ${b?.tag ? `<span class="match-team-tag">${b.tag}</span>` : ""}
         </div>
       </div>
+
     </div>`;
 }
 
@@ -443,17 +436,13 @@ function bracketResultCardHtml(m, data, stageLabel) {
       </div>
       <div class="match-row">
         <div class="match-team ${winA?"win":"lose"}">
-          <div class="match-team-info">
-            <span class="match-team-name">${a?.name||"?"}</span>
-            ${a?.tag ? `<span class="match-team-tag">${a.tag}</span>` : ""}
-          </div>
+          <span class="match-team-name">${a?.name||"?"}</span>
+          ${a?.tag ? `<span class="match-team-tag">${a.tag}</span>` : ""}
         </div>
         <div class="match-score">${m.scoreA} - ${m.scoreB}</div>
         <div class="match-team right ${winB?"win":"lose"}">
-          <div class="match-team-info right">
-            <span class="match-team-name">${b?.name||"?"}</span>
-            ${b?.tag ? `<span class="match-team-tag">${b.tag}</span>` : ""}
-          </div>
+          <span class="match-team-name">${b?.name||"?"}</span>
+          ${b?.tag ? `<span class="match-team-tag">${b.tag}</span>` : ""}
         </div>
       </div>
     </div>`;
@@ -509,8 +498,9 @@ function renderStandings(data) {
         <td class="team-name-cell">
           <span class="team-rank-num">${i + 1}</span>
           <span>${t.name}</span>
-          ${i < 2 ? '<span class="qualify-badge">Lolos</span>' : ''}
+          ${i < 2 ? '<span class="qualify-badge">✓ Lolos</span>' : ''}
         </td>
+        <td class="tag-cell"><span class="standings-tag">${t.tag || '-'}</span></td>
         <td>${t.played}</td>
         <td class="col-win">${t.win}</td>
         <td>${t.draw}</td>
@@ -525,6 +515,7 @@ function renderStandings(data) {
           <thead>
             <tr>
               <th class="th-team">Tim</th>
+              <th title="Tag Tim">Tag</th>
               <th title="Match Dimainkan">M</th>
               <th title="Menang" class="col-win">W</th>
               <th title="Seri">D</th>
@@ -749,37 +740,29 @@ function renderTeams(data) {
     return;
   }
 
-  // Buat inisial unik per tim — tidak boleh ada duplikat
+  // Buat inisial dari tag tim — pakai tag langsung, fallback jika duplikat
   const usedInitials = new Set();
   function getUniqueInitial(t) {
-    // Kandidat 1: tag (maks 3 huruf)
-    const candidates = [];
-    if (t.tag) {
-      candidates.push(t.tag.slice(0,3).toUpperCase());
-      candidates.push(t.tag.slice(0,2).toUpperCase());
-      candidates.push(t.tag.slice(0,1).toUpperCase());
+    // Pakai tag tim langsung (maks 5 huruf, uppercase)
+    const tagClean = (t.tag || "").trim().toUpperCase().replace(/\s+/g,"").slice(0,5);
+    if (tagClean && !usedInitials.has(tagClean)) {
+      usedInitials.add(tagClean);
+      return tagClean;
     }
-    // Kandidat 2: singkatan dari nama (tiap kata ambil huruf pertama)
-    const words = t.name.trim().split(/\s+/);
-    candidates.push(words.map(w => w[0]).join("").slice(0,3).toUpperCase());
-    candidates.push(words.map(w => w[0]).join("").slice(0,2).toUpperCase());
-    // Kandidat 3: 2 huruf pertama nama
-    candidates.push(t.name.slice(0,2).toUpperCase());
-    candidates.push(t.name.slice(0,1).toUpperCase());
-
-    for (const c of candidates) {
-      if (!usedInitials.has(c)) {
-        usedInitials.add(c);
-        return c;
+    // Fallback: potong jadi lebih pendek sampai unik
+    for (let len = 4; len >= 1; len--) {
+      const short = tagClean.slice(0, len);
+      if (short && !usedInitials.has(short)) {
+        usedInitials.add(short);
+        return short;
       }
     }
-    // Fallback: tambah angka sampai unik
-    let n = 1;
-    const base = (t.tag || t.name).slice(0,2).toUpperCase();
+    // Fallback akhir: tag + angka
+    let n = 2;
+    const base = tagClean.slice(0,3) || (t.name.slice(0,2).toUpperCase());
     while (usedInitials.has(base + n)) n++;
-    const result = base + n;
-    usedInitials.add(result);
-    return result;
+    usedInitials.add(base + n);
+    return base + n;
   }
 
   wrap.innerHTML = list.map((t) => {
