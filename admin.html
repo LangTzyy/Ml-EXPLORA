@@ -19,7 +19,6 @@
       <div class="login-card">
         <div class="login-card-glow"></div>
         <div class="login-logo">
-          <!-- ✏️ GANTI src="" dengan path logo Anda, contoh: src="images/logo.png" -->
           <img
             src="./assets/img/Logo.png"
             alt="EXPLORA Logo"
@@ -31,7 +30,6 @@
                 'grid';
             "
           />
-          <!-- Fallback icon jika logo belum diset -->
           <div class="login-logo-icon" id="loginLogoFallback">⚔</div>
         </div>
         <div class="login-divider"></div>
@@ -114,38 +112,25 @@
             <span></span><span></span><span></span>
           </button>
           <h1 id="tabTitle">Dashboard</h1>
-          <div class="top-actions">
+          <!-- Export tetap di top-actions, Import sudah dipindah ke tab Teams -->
+          <div class="top-actions"></div>
+        </header>
+
+        <!-- Dashboard -->
+        <section class="tab" data-tab="dashboard">
+          <div class="row-between" style="margin-bottom:16px;">
+            <div></div>
             <div class="export-dropdown">
               <div class="export-btn-group">
-                <button class="btn btn-primary" id="exportWordBtn">
-                  📄 Export
-                </button>
-                <button
-                  class="btn btn-primary dropdown-toggle"
-                  id="exportDropdownToggle"
-                >
-                  ▼
-                </button>
+                <button class="btn btn-primary" id="exportWordBtn">📄 Export</button>
+                <button class="btn btn-primary dropdown-toggle" id="exportDropdownToggle">▼</button>
               </div>
               <div class="dropdown-menu hidden" id="exportDropdownMenu">
                 <button id="exportWordOnlyBtn">📄 Export ke Word</button>
                 <button id="exportPdfBtn">📑 Export ke PDF</button>
               </div>
             </div>
-            <label class="btn btn-ghost">
-              ⬆ Import
-              <input
-                type="file"
-                id="importFile"
-                accept=".xlsx,.xls,application/json"
-                hidden
-              />
-            </label>
           </div>
-        </header>
-
-        <!-- Dashboard -->
-        <section class="tab" data-tab="dashboard">
           <div id="adminStats" class="stats-grid"></div>
           <div class="card glass mt-lg">
             <h3>Pertandingan Mendatang / Hasil Turnamen</h3>
@@ -157,9 +142,21 @@
         <section class="tab hidden" data-tab="teams">
           <div class="row-between">
             <h3>Daftar Tim (<span id="teamCount">0</span>)</h3>
-            <button class="btn btn-primary" id="addTeamBtn">
-              + Tambah Tim
-            </button>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <!-- Import hanya ada di sini -->
+              <label class="btn btn-ghost" style="cursor:pointer;">
+                ⬆ Import
+                <input
+                  type="file"
+                  id="importFile"
+                  accept=".xlsx,.xls,application/json"
+                  hidden
+                />
+              </label>
+              <button class="btn btn-primary" id="addTeamBtn">
+                + Tambah Tim
+              </button>
+            </div>
           </div>
           <div class="team-search-wrap">
             <i class="ti ti-search" aria-hidden="true"></i>
@@ -257,7 +254,6 @@
                 align-items: center;
               "
             >
-              <!-- Info mode edit -->
               <span id="swapModeInfo" class="swap-mode-info hidden">
                 🔄 Mode Edit Aktif — Klik match untuk swap/edit tim
               </span>
@@ -274,7 +270,6 @@
             </div>
           </div>
 
-          <!-- Panduan edit matchup -->
           <div id="swapGuide" class="swap-guide hidden">
             <div class="swap-guide-inner">
               <span>💡 <strong>Cara Edit Matchup:</strong></span>

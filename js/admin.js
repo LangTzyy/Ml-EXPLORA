@@ -100,29 +100,20 @@ async function initAdmin() {
   });
 
   // Export dropdown
-  const exportContainer = document.querySelector(
-    ".top-actions .export-dropdown",
-  );
-  if (exportContainer) {
-    document
-      .getElementById("exportWordBtn")
-      ?.addEventListener("click", () => exportToWord());
-    document
-      .getElementById("exportWordOnlyBtn")
-      ?.addEventListener("click", () => exportToWord());
-    document
-      .getElementById("exportPdfBtn")
-      ?.addEventListener("click", () => exportToPDF());
-    const toggle = document.getElementById("exportDropdownToggle");
-    const menu = document.getElementById("exportDropdownMenu");
-    toggle?.addEventListener("click", (e) => {
-      e.stopPropagation();
-      menu?.classList.toggle("hidden");
-    });
-    document.addEventListener("click", (e) => {
-      if (!exportContainer.contains(e.target)) menu?.classList.add("hidden");
-    });
-  }
+  document.getElementById("exportWordBtn")?.addEventListener("click", () => exportToWord());
+  document.getElementById("exportWordOnlyBtn")?.addEventListener("click", () => exportToWord());
+  document.getElementById("exportPdfBtn")?.addEventListener("click", () => exportToPDF());
+  const toggle = document.getElementById("exportDropdownToggle");
+  const menu = document.getElementById("exportDropdownMenu");
+  toggle?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menu?.classList.toggle("hidden");
+  });
+  document.addEventListener("click", (e) => {
+    if (!toggle?.contains(e.target) && !menu?.contains(e.target)) {
+      menu?.classList.add("hidden");
+    }
+  });
 
   // Import hanya di tab teams
   document.getElementById("importFile")?.addEventListener("change", importData);
