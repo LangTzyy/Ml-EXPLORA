@@ -8,14 +8,14 @@ const AUTH_KEY = "mlwc_auth";
 const GROUPS = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
 const LOGO_COLORS = [
-  "linear-gradient(135deg,#ff5e62,#ff9966)",
-  "linear-gradient(135deg,#3aa9ff,#a371ff)",
-  "linear-gradient(135deg,#ffd166,#ff8c42)",
-  "linear-gradient(135deg,#45e3a8,#3aa9ff)",
-  "linear-gradient(135deg,#ff5ec4,#a371ff)",
-  "linear-gradient(135deg,#06d6a0,#118ab2)",
-  "linear-gradient(135deg,#ef476f,#ffd166)",
-  "linear-gradient(135deg,#7b2cbf,#3a86ff)",
+  "linear-gradient(135deg,#0066ff,#001a4d)",
+  "linear-gradient(135deg,#00a3ff,#003399)",
+  "linear-gradient(135deg,#00d4ff,#0066ff)",
+  "linear-gradient(135deg,#0044cc,#000d1a)",
+  "linear-gradient(135deg,#0088ff,#001133)",
+  "linear-gradient(135deg,#00c3ff,#004499)",
+  "linear-gradient(135deg,#1a6fff,#000833)",
+  "linear-gradient(135deg,#00b4ff,#002266)",
 ];
 
 const DEFAULT_TIMELINE = [
@@ -164,6 +164,12 @@ function teamById(id, data) {
   return data?.teams?.find((t) => t.id === id);
 }
 
+function getTeamColor(team) {
+  if (!team) return LOGO_COLORS[0];
+  const idx = Math.abs(team.name.split("").reduce((acc,c)=>acc+c.charCodeAt(0),0)) % LOGO_COLORS.length;
+  return LOGO_COLORS[idx];
+}
+
 function getTimeline(data) {
   return data?.timeline || DEFAULT_TIMELINE;
 }
@@ -238,18 +244,37 @@ async function initPublic() {
 function setupNav() {
   const burger = document.getElementById("hamburger");
   const links  = document.getElementById("navLinks");
+
   burger?.addEventListener("click", () => {
     burger.classList.toggle("open");
     links.classList.toggle("open");
   });
-  document.querySelectorAll(".nav-link").forEach((a) => {
+
+  // Klik nav link → set active
+  document.querySelectorAll(".nav-link[data-section]").forEach((a) => {
     a.addEventListener("click", () => {
-      document.querySelectorAll(".nav-link").forEach((x) => x.classList.remove("active"));
-      a.classList.add("active");
       burger?.classList.remove("open");
       links?.classList.remove("open");
     });
   });
+
+  // Realtime active nav berdasarkan section yang terlihat (IntersectionObserver)
+  const sections = document.querySelectorAll("section[id]");
+  const navLinks = document.querySelectorAll(".nav-link[data-section]");
+
+  const setActive = (id) => {
+    navLinks.forEach((a) => {
+      a.classList.toggle("active", a.dataset.section === id);
+    });
+  };
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) setActive(e.target.id);
+    });
+  }, { threshold: 0.3, rootMargin: "-80px 0px -60% 0px" });
+
+  sections.forEach((s) => io.observe(s));
 }
 
 /* ─── RENDER ALL ─── */
@@ -271,42 +296,102 @@ function renderSchedule(data) {
   const search = (document.getElementById("searchSchedule")?.value || "").toLowerCase();
   const stageF = document.getElementById("filterScheduleStage")?.value || "";
 
-  // Semua pertandingan grup yang belum dimainkan
-  let list = data.matches.filter((m) => !m.played);
-  if (search) list = list.filter((m) => {
+  const stageLabels = {
+    group:  { label:"Babak Grup",       icon:"⚔️", format:"BO1" },
+    r16:    { label:"16 Besar",          icon:"⚡",  format:"BO3" },
+    qf:     { label:"8 Besar",           icon:"🔥", format:"BO3" },
+    sf:     { label:"Semifinal",         icon:"🏅", format:"BO3" },
+    bronze: { label:"Perebutan Juara 3", icon:"🥉", format:"BO3" },
+    final:  { label:"Grand Final",       icon:"🏆", format:"BO3" },
+  };
+
+  function matchesSearch(m) {
+    if (!search) return true;
     const a = teamById(m.teamA, data)?.name.toLowerCase() || "";
     const b = teamById(m.teamB, data)?.name.toLowerCase() || "";
     return a.includes(search) || b.includes(search);
-  });
-
-  // Filter per tahap: kalau pilih "group" tampilkan list grup, lainnya kosong (bracket belum main)
-  if (stageF && stageF !== "group") {
-    list = []; // Jadwal bracket belum main ditampilkan dari bracket section
   }
 
-  if (!list.length) {
-    // Tidak ada jadwal sama sekali (belum ada tim/match)
+  let html = "";
+  let totalShown = 0;
+
+  // ── Babak Grup ──
+  if (!stageF || stageF === "group") {
+    let gm = data.matches.filter(m => !m.played && matchesSearch(m));
+    if (gm.length) {
+      html += stageDivider("⚔️", "Babak Grup", "BO1");
+      html += gm.slice(0, 60).map(m => matchCardHtml(m, data, tl)).join("");
+      totalShown += gm.length;
+    }
+  }
+
+  // ── Babak Playoff (bracket) ──
+  const br = data.bracket;
+  if (br && (!stageF || stageF !== "group")) {
+    ["r16","qf","sf","bronze","final"].forEach(stage => {
+      if (stageF && stageF !== stage) return;
+      const sl = stageLabels[stage];
+      const unplayed = (br[stage] || []).filter(m => !m.played && (m.teamA || m.teamB));
+      const filtered = unplayed.filter(matchesSearch);
+      if (filtered.length) {
+        html += stageDivider(sl.icon, sl.label, sl.format);
+        html += filtered.map((m, i) => bracketScheduleCardHtml(m, i+1, data, sl.label, sl.format)).join("");
+        totalShown += filtered.length;
+      }
+    });
+  }
+
+  if (!totalShown) {
     if (!data.teams.length || !data.matches.length) {
       wrap.innerHTML = emptyState("📅", "Belum ada jadwal pertandingan", "Jadwal akan muncul setelah admin menginput data tim.");
       return;
     }
-    // Turnamen sudah selesai (ada juara)
     if (isTournamentFinished(data)) {
       wrap.innerHTML = emptyState("✅", "Semua pertandingan sudah selesai", "Lihat hasil lengkap di bagian Hasil Pertandingan.");
       return;
     }
-    // Semua match grup sudah dimainkan tapi turnamen belum selesai
-    const allGroupPlayed = data.matches.every(m => m.played);
-    if (allGroupPlayed) {
-      wrap.innerHTML = emptyState("⚡", "Babak Grup Selesai", "Turnamen dilanjutkan ke babak playoff. Lihat bracket di bawah.");
-      return;
-    }
-    // Filter aktif tapi tidak ada hasil
     wrap.innerHTML = emptyState("🔍", "Tidak ada jadwal", "Coba ubah filter pencarian.");
     return;
   }
 
-  wrap.innerHTML = list.slice(0, 60).map((m) => matchCardHtml(m, data, tl)).join("");
+  wrap.innerHTML = html;
+}
+
+function stageDivider(icon, label, format) {
+  return `<div class="stage-divider" style="grid-column:1/-1">
+    <span class="stage-divider-icon">${icon}</span>
+    <span class="stage-divider-label">${label}</span>
+    <span class="stage-divider-format">${format}</span>
+  </div>`;
+}
+
+function bracketScheduleCardHtml(m, idx, data, stageLabel, format) {
+  const a = teamById(m.teamA, data);
+  const b = teamById(m.teamB, data);
+  const nameA = a?.name || (m.teamA ? "?" : "TBD");
+  const nameB = b?.name || (m.teamB ? "?" : "TBD");
+  return `
+    <div class="match-card">
+      <div class="match-meta">
+        <span class="match-tag gold">${stageLabel} • M${idx}</span>
+        <span class="match-tag" style="background:rgba(255,204,0,0.1);color:var(--warning)">⏳ Menunggu</span>
+      </div>
+      <div class="match-row">
+        <div class="match-team">
+          <div class="match-team-info">
+            <span class="match-team-name">${nameA}</span>
+            ${a?.tag ? `<span class="match-team-tag">${a.tag}</span>` : ""}
+          </div>
+        </div>
+        <div class="match-score vs">VS</div>
+        <div class="match-team right">
+          <div class="match-team-info right">
+            <span class="match-team-name">${nameB}</span>
+            ${b?.tag ? `<span class="match-team-tag">${b.tag}</span>` : ""}
+          </div>
+        </div>
+      </div>
+    </div>`;
 }
 
 function getMatchDateFromTimeline(match, tl) {
@@ -328,9 +413,19 @@ function matchCardHtml(m, data, tl, showStatus = false) {
       </div>
       ${dateStr ? `<div class="match-date-row">📅 ${dateStr}</div>` : ""}
       <div class="match-row">
-        <div class="match-team ${winA?"win":m.played?"lose":""}"><span>${a?.name||"?"}</span></div>
+        <div class="match-team ${winA?"win":m.played?"lose":""}">
+          <div class="match-team-info">
+            <span class="match-team-name">${a?.name||"?"}</span>
+            ${a?.tag ? `<span class="match-team-tag">${a.tag}</span>` : ""}
+          </div>
+        </div>
         <div class="match-score ${m.played?"":"vs"}">${m.played?`${m.scoreA} - ${m.scoreB}`:"VS"}</div>
-        <div class="match-team right ${winB?"win":m.played?"lose":""}"><span>${b?.name||"?"}</span></div>
+        <div class="match-team right ${winB?"win":m.played?"lose":""}">
+          <div class="match-team-info right">
+            <span class="match-team-name">${b?.name||"?"}</span>
+            ${b?.tag ? `<span class="match-team-tag">${b.tag}</span>` : ""}
+          </div>
+        </div>
       </div>
     </div>`;
 }
@@ -347,9 +442,19 @@ function bracketResultCardHtml(m, data, stageLabel) {
         <span class="match-tag done">✓ Selesai</span>
       </div>
       <div class="match-row">
-        <div class="match-team ${winA?"win":"lose"}"><span>${a?.name||"?"}</span></div>
+        <div class="match-team ${winA?"win":"lose"}">
+          <div class="match-team-info">
+            <span class="match-team-name">${a?.name||"?"}</span>
+            ${a?.tag ? `<span class="match-team-tag">${a.tag}</span>` : ""}
+          </div>
+        </div>
         <div class="match-score">${m.scoreA} - ${m.scoreB}</div>
-        <div class="match-team right ${winB?"win":"lose"}"><span>${b?.name||"?"}</span></div>
+        <div class="match-team right ${winB?"win":"lose"}">
+          <div class="match-team-info right">
+            <span class="match-team-name">${b?.name||"?"}</span>
+            ${b?.tag ? `<span class="match-team-tag">${b.tag}</span>` : ""}
+          </div>
+        </div>
       </div>
     </div>`;
 }
@@ -360,7 +465,7 @@ function setupFilters() {
       renderSchedule(getData());
     });
   });
-  ["searchResults","filterResultGroup","filterResultStage"].forEach((id) => {
+  ["searchResults","filterResultStage"].forEach((id) => {
     document.getElementById(id)?.addEventListener("input", () => {
       renderResults(getData());
     });
@@ -450,25 +555,28 @@ function renderResults(data) {
   const tl     = getTimeline(data);
   const br     = data.bracket;
   const search = (document.getElementById("searchResults")?.value || "").toLowerCase();
-  const groupF = document.getElementById("filterResultGroup")?.value || "";
   const stageF = document.getElementById("filterResultStage")?.value || "";
   const stageLabels = { r16:"16 Besar", qf:"8 Besar", sf:"Semifinal", bronze:"Perebutan Juara 3", final:"Grand Final" };
 
   let html = "", totalShown = 0;
+  const stageIcons = { r16:"⚡", qf:"🔥", sf:"🏅", bronze:"🥉", final:"🏆" };
 
   if (!stageF || stageF === "group") {
     let gm = data.matches.filter((m) => m.played);
-    if (groupF) gm = gm.filter((m) => m.group === groupF);
     if (search) gm = gm.filter((m) => {
       const a = teamById(m.teamA,data)?.name.toLowerCase()||"";
       const b = teamById(m.teamB,data)?.name.toLowerCase()||"";
       return a.includes(search)||b.includes(search);
     });
     gm = gm.slice(-50).reverse();
-    if (gm.length) { html += gm.map((m)=>matchCardHtml(m,data,tl,true)).join(""); totalShown+=gm.length; }
+    if (gm.length) {
+      html += stageDivider("⚔️", "Babak Grup", "BO1");
+      html += gm.map((m)=>matchCardHtml(m,data,tl,true)).join("");
+      totalShown+=gm.length;
+    }
   }
 
-  if (!groupF && br) {
+  if (br) {
     ["r16","qf","sf","bronze","final"].forEach((stage) => {
       if (stageF && stageF!=="bracket" && stageF!==stage) return;
       let played = (br[stage]||[]).filter((m)=>m.played);
@@ -478,6 +586,7 @@ function renderResults(data) {
         return a.includes(search)||b.includes(search);
       });
       if (played.length) {
+        html += stageDivider(stageIcons[stage]||"🏆", stageLabels[stage], "BO3");
         played.forEach((m) => { html += bracketResultCardHtml(m,data,stageLabels[stage]); });
         totalShown += played.length;
       }
@@ -502,86 +611,126 @@ function renderBracket(elementId, data) {
     return;
   }
 
+  // Split: sisi kiri = r16[0-3], qf[0-1], sf[0] | sisi kanan = r16[4-7], qf[2-3], sf[1]
+  const r16L = br.r16.slice(0, 4);
+  const r16R = br.r16.slice(4, 8);
+  const qfL  = br.qf.slice(0, 2);
+  const qfR  = br.qf.slice(2, 4);
+  const sfL  = [br.sf[0]];
+  const sfR  = [br.sf[1]];
+
+  const mkMatch = (matches, startIdx = 1) =>
+    matches.map((m, i) => bracketMatchPublicHtml(m, startIdx + i, data)).join("");
+
+  const col = (matches, startIdx = 1) =>
+    `<div class="bk-col">${mkMatch(matches, startIdx)}</div>`;
+
+  const header = (icon, title, fmt, extra = "") =>
+    `<div class="bk-stage-header ${extra}">
+      <span>${icon}</span>
+      <span class="bk-stage-title">${title}</span>
+      <span class="bk-stage-fmt">${fmt}</span>
+    </div>`;
+
+  const arrows = (n, dir = "right") =>
+    `<div class="bk-arrow-col bk-arrow-col--${dir}">
+      ${Array.from({ length: n }, () => `<div class="bk-arrow">${dir === "right" ? "›" : "‹"}</div>`).join("")}
+    </div>`;
+
   wrap.innerHTML = `
-    <div class="bracket-flow">
-      <div class="bracket-stage-block">
-        <div class="bracket-stage-header">
-          <span class="stage-icon">⚡</span>
-          <span>16 Besar</span>
-          <span class="stage-format">BO3</span>
+    <div class="bk-double">
+
+      <!-- ══ KIRI ══ -->
+      <div class="bk-half bk-half--left">
+
+        <!-- R16 kiri -->
+        <div class="bk-stage">
+          ${header("⚡", "16 Besar", "BO3")}
+          ${col(r16L, 1)}
         </div>
-        <div class="bracket-col">
-          ${br.r16.map((m,i) => bracketMatchPublicHtml(m, i+1, data)).join("")}
+
+        ${arrows(2, "right")}
+
+        <!-- QF kiri -->
+        <div class="bk-stage">
+          ${header("🔥", "8 Besar", "BO3")}
+          ${col(qfL, 1)}
+        </div>
+
+        ${arrows(1, "right")}
+
+        <!-- SF kiri -->
+        <div class="bk-stage">
+          ${header("🏅", "Semifinal", "BO3")}
+          ${col(sfL, 1)}
+        </div>
+
+        ${arrows(1, "right")}
+      </div>
+
+      <!-- ══ TENGAH ══ -->
+      <div class="bk-center-col">
+        <div class="bk-trophy">🏆</div>
+        <div class="bk-stage bk-stage--final">
+          ${header("🏆", "Grand Final", "BO3", "bk-header--final")}
+          ${col(br.final, 1)}
+        </div>
+        <div class="bk-stage bk-stage--bronze">
+          ${header("🥉", "Juara 3", "BO3", "bk-header--bronze")}
+          ${col(br.bronze, 1)}
         </div>
       </div>
-      <div class="bracket-connector-col">
-        ${Array.from({length:4}, () => '<div class="bracket-connector"></div>').join("")}
-      </div>
-      <div class="bracket-stage-block">
-        <div class="bracket-stage-header">
-          <span class="stage-icon">🔥</span>
-          <span>8 Besar</span>
-          <span class="stage-format">BO3</span>
+
+      <!-- ══ KANAN ══ -->
+      <div class="bk-half bk-half--right">
+
+        ${arrows(1, "left")}
+
+        <!-- SF kanan -->
+        <div class="bk-stage">
+          ${header("🏅", "Semifinal", "BO3")}
+          ${col(sfR, 2)}
         </div>
-        <div class="bracket-col">
-          ${br.qf.map((m,i) => bracketMatchPublicHtml(m, i+1, data)).join("")}
+
+        ${arrows(1, "left")}
+
+        <!-- QF kanan -->
+        <div class="bk-stage">
+          ${header("🔥", "8 Besar", "BO3")}
+          ${col(qfR, 3)}
         </div>
-      </div>
-      <div class="bracket-connector-col bracket-connector-col--sm">
-        ${Array.from({length:2}, () => '<div class="bracket-connector"></div>').join("")}
-      </div>
-      <div class="bracket-stage-block">
-        <div class="bracket-stage-header">
-          <span class="stage-icon">🏅</span>
-          <span>Semifinal</span>
-          <span class="stage-format">BO3</span>
-        </div>
-        <div class="bracket-col">
-          ${br.sf.map((m,i) => bracketMatchPublicHtml(m, i+1, data)).join("")}
-        </div>
-      </div>
-      <div class="bracket-finals-col">
-        <div class="bracket-stage-block bracket-stage-block--bronze">
-          <div class="bracket-stage-header">
-            <span class="stage-icon">🥉</span>
-            <span>Juara 3</span>
-            <span class="stage-format">BO3</span>
-          </div>
-          <div class="bracket-col">
-            ${br.bronze.map((m,i) => bracketMatchPublicHtml(m, i+1, data)).join("")}
-          </div>
-        </div>
-        <div class="bracket-stage-block bracket-stage-block--final">
-          <div class="bracket-stage-header bracket-stage-header--final">
-            <span class="stage-icon">🏆</span>
-            <span>Grand Final</span>
-            <span class="stage-format">BO3</span>
-          </div>
-          <div class="bracket-col">
-            ${br.final.map((m,i) => bracketMatchPublicHtml(m, i+1, data, true)).join("")}
-          </div>
+
+        ${arrows(2, "left")}
+
+        <!-- R16 kanan -->
+        <div class="bk-stage">
+          ${header("⚡", "16 Besar", "BO3")}
+          ${col(r16R, 5)}
         </div>
       </div>
+
     </div>`;
 }
 
 function bracketMatchPublicHtml(m, idx, data, isFinal=false) {
-  const a = teamById(m.teamA,data), b = teamById(m.teamB,data);
-  const winA = m.winner && m.winner===m.teamA;
-  const winB = m.winner && m.winner===m.teamB;
+  const a = teamById(m.teamA, data), b = teamById(m.teamB, data);
+  const winA = m.winner && m.winner === m.teamA;
+  const winB = m.winner && m.winner === m.teamB;
+  const nameA = a?.name || "TBD";
+  const nameB = b?.name || "TBD";
   return `
-    <div class="bracket-match ${isFinal?"final":""} ${m.winner?"bracket-match--done":""}">
+    <div class="bracket-match ${isFinal ? "final" : ""} ${m.winner ? "bracket-match--done" : ""}">
       <span class="bm-tag">M${idx}</span>
-      <div class="bm-row ${winA?"win":m.winner?"lose":""}">
-        <div class="bm-team">${a?`<div class="bm-logo">${a.tag?.[0]||"?"}</div>`:'<div class="bm-logo tbd">?</div>'}<span>${a?.name||"TBD"}</span></div>
-        <div class="bm-score ${winA?"bm-score--win":""}">${m.played?m.scoreA:"-"}</div>
+      <div class="bm-row ${winA ? "win" : m.winner ? "lose" : ""}">
+        <div class="bm-team"><span class="bm-name">${nameA}</span></div>
+        <div class="bm-score ${winA ? "bm-score--win" : ""}">${m.played ? m.scoreA : "-"}</div>
       </div>
       <div class="bm-divider"></div>
-      <div class="bm-row ${winB?"win":m.winner?"lose":""}">
-        <div class="bm-team">${b?`<div class="bm-logo">${b.tag?.[0]||"?"}</div>`:'<div class="bm-logo tbd">?</div>'}<span>${b?.name||"TBD"}</span></div>
-        <div class="bm-score ${winB?"bm-score--win":""}">${m.played?m.scoreB:"-"}</div>
+      <div class="bm-row ${winB ? "win" : m.winner ? "lose" : ""}">
+        <div class="bm-team"><span class="bm-name">${nameB}</span></div>
+        <div class="bm-score ${winB ? "bm-score--win" : ""}">${m.played ? m.scoreB : "-"}</div>
       </div>
-      ${m.winner?`<div class="bm-winner-bar"></div>`:""}
+      ${m.winner ? `<div class="bm-winner-bar"></div>` : ""}
     </div>`;
 }
 
@@ -599,13 +748,50 @@ function renderTeams(data) {
       : emptyState("👥","Belum ada tim","Tim akan muncul setelah admin menginput data.");
     return;
   }
-  wrap.innerHTML = list.map((t) => `
+
+  // Buat inisial unik per tim — tidak boleh ada duplikat
+  const usedInitials = new Set();
+  function getUniqueInitial(t) {
+    // Kandidat 1: tag (maks 3 huruf)
+    const candidates = [];
+    if (t.tag) {
+      candidates.push(t.tag.slice(0,3).toUpperCase());
+      candidates.push(t.tag.slice(0,2).toUpperCase());
+      candidates.push(t.tag.slice(0,1).toUpperCase());
+    }
+    // Kandidat 2: singkatan dari nama (tiap kata ambil huruf pertama)
+    const words = t.name.trim().split(/\s+/);
+    candidates.push(words.map(w => w[0]).join("").slice(0,3).toUpperCase());
+    candidates.push(words.map(w => w[0]).join("").slice(0,2).toUpperCase());
+    // Kandidat 3: 2 huruf pertama nama
+    candidates.push(t.name.slice(0,2).toUpperCase());
+    candidates.push(t.name.slice(0,1).toUpperCase());
+
+    for (const c of candidates) {
+      if (!usedInitials.has(c)) {
+        usedInitials.add(c);
+        return c;
+      }
+    }
+    // Fallback: tambah angka sampai unik
+    let n = 1;
+    const base = (t.tag || t.name).slice(0,2).toUpperCase();
+    while (usedInitials.has(base + n)) n++;
+    const result = base + n;
+    usedInitials.add(result);
+    return result;
+  }
+
+  wrap.innerHTML = list.map((t) => {
+    const initials = getUniqueInitial(t);
+    return `
     <div class="team-card">
-      <div class="team-logo-placeholder">⚔</div>
+      <div class="team-avatar">${initials}</div>
       <h4>${t.name}</h4>
       <span class="team-tag-label">${t.tag || ""}</span>
       <span class="team-group">Grup ${t.group}</span>
-    </div>`).join("");
+    </div>`;
+  }).join("");
 }
 
 /* ─── STATS ─── */

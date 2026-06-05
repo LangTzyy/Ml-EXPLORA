@@ -442,7 +442,7 @@ h4 {
 
 .section-head {
   text-align: center;
-  margin-bottom: 60px;
+  margin-bottom: 36px;
 }
 
 .section-head h2 {
@@ -820,6 +820,23 @@ select.input {
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 }
 
+/* Hasil pertandingan — card center */
+#resultsList.match-grid {
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  justify-content: center;
+  justify-items: center;
+}
+
+#resultsList.match-grid .match-card,
+#resultsList.match-grid .stage-divider {
+  width: 100%;
+  max-width: 480px;
+}
+
+#resultsList.match-grid .stage-divider {
+  max-width: 100%;
+}
+
 .match-card {
   background: var(--bg-card);
   backdrop-filter: blur(20px);
@@ -905,6 +922,14 @@ select.input {
   gap: 12px;
   font-weight: 600;
   font-family: var(--font-primary);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.match-team span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .match-team.right {
@@ -1457,13 +1482,72 @@ select.input {
 /* ===== FOOTER ===== */
 .footer {
   text-align: center;
-  padding: 40px;
+  padding: 48px 40px;
   color: var(--text-tertiary);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   border-top: 1px solid var(--border);
   margin-top: 80px;
-  background: rgba(5, 6, 8, 0.95);
+  background: rgba(5, 6, 8, 0.98);
   backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+}
+
+.footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 1px;
+  background: var(--gradient-blue);
+}
+
+.footer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(0,102,255,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.footer-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.footer-logo {
+  font-family: var(--font-primary);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  background: var(--gradient-blue);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.footer-tagline {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.footer-divider {
+  width: 40px;
+  height: 1px;
+  background: var(--border);
+}
+
+.footer-copy {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
 }
 
 /* ===== UTILITIES ===== */
@@ -2637,4 +2721,226 @@ select.input {
   }
   .bracket-stage-block { min-width: 200px; max-width: 210px; }
   .bracket-finals-col  { min-width: 210px; }
+}
+/* ============================================================
+   PERBAIKAN TAMPILAN — script update
+   ============================================================ */
+
+/* ===== STAGE DIVIDER (Jadwal & Hasil) ===== */
+.stage-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  margin: 8px 0 4px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 102, 255, 0.07);
+  border: 1px solid var(--border-light);
+  border-left: 3px solid var(--blue-primary);
+}
+.stage-divider-icon { font-size: 1rem; }
+.stage-divider-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-family: var(--font-primary);
+  color: var(--blue-electric);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  flex: 1;
+}
+.stage-divider-format {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-light);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* ===== TEAM AVATAR — warna seragam biru ===== */
+.team-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-lg);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 1.4rem;
+  color: white;
+  margin: 0 auto 16px;
+  font-family: var(--font-primary);
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #0066ff, #001a4d);
+  box-shadow: 0 4px 20px rgba(0, 102, 255, 0.35);
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.team-avatar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.22) 0%, transparent 60%);
+}
+.team-card:hover .team-avatar {
+  transform: scale(1.06);
+  box-shadow: 0 6px 28px rgba(0, 102, 255, 0.5);
+}
+@media (max-width: 768px) {
+  .team-avatar { width: 64px; height: 64px; font-size: 1.1rem; }
+}
+@media (max-width: 480px) {
+  .team-avatar { width: 54px; height: 54px; font-size: 0.95rem; }
+}
+
+/* ===== BRACKET BARU — bk-* classes ===== */
+/* ============================================================
+   BRACKET DOUBLE ELIMINATION — Final di tengah, kiri & kanan
+   ============================================================ */
+
+.bk-stage {
+  min-width: 200px;
+  max-width: 215px;
+  flex-shrink: 0;
+}
+
+.bk-stage-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(0,102,255,0.08);
+  border: 1px solid var(--border-light);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: var(--font-primary);
+  color: var(--blue-electric);
+  white-space: nowrap;
+}
+
+.bk-stage-title { flex: 1; }
+
+.bk-stage-fmt {
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-light);
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.bk-header--final {
+  background: rgba(0,212,255,0.12);
+  border-color: rgba(0,212,255,0.3);
+  color: var(--blue-neon);
+  animation: finalHeaderGlow 3s ease-in-out infinite;
+}
+
+.bk-header--bronze {
+  background: rgba(100,60,20,0.15);
+  border-color: rgba(180,120,60,0.25);
+  color: #cd7f32;
+}
+
+.bk-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Outer wrapper */
+.bk-double {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: max-content;
+  padding: 16px 4px 24px;
+}
+
+/* Left & right halves */
+.bk-half {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+/* Center column: trophy + Final + Bronze */
+.bk-center-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  min-width: 220px;
+  padding: 0 4px;
+}
+
+.bk-trophy {
+  font-size: 2.5rem;
+  filter: drop-shadow(0 0 12px rgba(0,212,255,0.5));
+  animation: crownFloat 3s ease-in-out infinite;
+  margin-bottom: -4px;
+}
+
+.bk-stage--final,
+.bk-stage--bronze {
+  width: 100%;
+}
+
+/* Arrow connectors */
+.bk-arrow-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  width: 28px;
+  flex-shrink: 0;
+  align-self: stretch;
+  padding-top: 36px;
+}
+
+.bk-arrow {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0,102,255,0.45);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+/* Team name in bracket */
+.bm-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+  font-size: 0.8rem;
+}
+
+.bm-team {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Mobile: horizontal scroll */
+@media (max-width: 900px) {
+  .bk-double     { min-width: 1000px; }
+  .bk-stage      { min-width: 170px; max-width: 180px; }
+  .bk-center-col { min-width: 190px; }
+}
+
+/* ===== HASIL PERTANDINGAN — grid layout (restored) ===== */
+#resultsList {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+}
+
+#resultsList .stage-divider {
+  grid-column: 1 / -1;
 }
