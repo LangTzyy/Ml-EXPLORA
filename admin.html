@@ -96,6 +96,7 @@
           <a class="side-link" data-tab="standings">📈 Klasemen Grup</a>
           <a class="side-link" data-tab="playoff">🏆 Playoff</a>
           <a class="side-link" data-tab="timeline">🗓️ Timeline</a>
+          <a class="side-link" data-tab="manage-admins">👤 Manajemen Admin</a>
           <a class="side-link" data-tab="settings">⚙️ Pengaturan</a>
         </nav>
         <div class="sidebar-foot">
@@ -113,7 +114,12 @@
           </button>
           <h1 id="tabTitle">Dashboard</h1>
           <!-- Export tetap di top-actions, Import sudah dipindah ke tab Teams -->
-          <div class="top-actions"></div>
+          <div class="top-actions">
+            <div class="super-admin-badge">
+              <span class="super-admin-dot"></span>
+              <span>Super Admin</span>
+            </div>
+          </div>
         </header>
 
         <!-- Dashboard -->
@@ -298,6 +304,19 @@
           <div class="timeline-editor" id="timelineEditor"></div>
         </section>
 
+        <!-- Manajemen Admin -->
+        <section class="tab hidden" data-tab="manage-admins">
+          <div class="row-between" style="margin-bottom:16px;">
+            <h3>Manajemen Admin</h3>
+            <button class="btn btn-primary" id="addGroupAdminBtn">+ Tambah Admin Grup</button>
+          </div>
+          <div class="card glass">
+            <div id="adminAccountsTable">
+              <div class="empty-state">⏳ Memuat data...</div>
+            </div>
+          </div>
+        </section>
+
         <!-- Settings -->
         <section class="tab hidden" data-tab="settings">
           <div class="settings-section">
@@ -378,38 +397,6 @@
                 <button class="btn btn-primary" id="saveSettingsBtn">
                   💾 Simpan Pengaturan
                 </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="settings-section">
-            <div class="settings-section-header">
-              <span class="settings-section-icon">🔐</span>
-              <div>
-                <div class="settings-section-title">Manajemen Admin</div>
-                <div class="settings-section-desc">
-                  Kelola akses dan keamanan akun admin
-                </div>
-              </div>
-            </div>
-            <div class="settings-body">
-              <div class="settings-row">
-                <label class="settings-label">Kredensial Login</label>
-                <div class="settings-control">
-                  <div class="credentials-display">
-                    <span class="cred-item"
-                      >👤 <span id="currentUserDisplay">admin</span></span
-                    >
-                    <span class="cred-item">🔒 ••••••••</span>
-                  </div>
-                  <button
-                    class="btn btn-ghost sm"
-                    id="changePassBtn"
-                    style="margin-top: 10px"
-                  >
-                    ✏️ Ganti Username & Password
-                  </button>
-                </div>
               </div>
             </div>
           </div>

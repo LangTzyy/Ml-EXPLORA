@@ -133,6 +133,8 @@ async function initAdmin() {
     .getElementById("teamSearchInput")
     ?.addEventListener("input", () => renderAdminTeams());
   await initSettingsOnLoad();
+
+  document.getElementById("addGroupAdminBtn")?.addEventListener("click", () => openGroupAdminModal());
 }
 
 /* ── UI swap mode ── */
@@ -179,6 +181,7 @@ function switchTab(name) {
     playoff: "Playoff Bracket",
     timeline: "Timeline Turnamen",
     standings: "Klasemen Grup",
+    "manage-admins": "Manajemen Admin",
     settings: "Pengaturan",
   };
   document.getElementById("tabTitle").textContent = titles[name] || name;
@@ -198,6 +201,7 @@ function renderAdmin() {
   renderUpcomingMini();
   renderTimelineEditor();
   renderAdminStandings();
+  renderAdminAccounts().catch(console.error);
   renderSettingsTab().catch(console.error);
 }
 
@@ -777,18 +781,11 @@ function renderAdminStandings() {
         return 0;
       });
 
-    const isBlock1 = ["A", "B", "C", "D"].includes(g);
-    const blockLabel = isBlock1 ? "6 Juni" : "7 Juni";
-    const blockColor = isBlock1 ? "#3a9fff" : "#00c853";
-
     html += `
       <div class="standings-group-card">
         <div class="standings-group-header">
           <div style="display:flex;align-items:center;gap:10px;">
             <span class="standings-group-badge">Grup ${g}</span>
-            <span style="font-size:0.68rem;padding:2px 8px;border-radius:20px;background:${blockColor}22;color:${blockColor};font-weight:600;">
-              ${blockLabel}
-            </span>
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <span class="standings-group-info">
@@ -2451,6 +2448,235 @@ window.executeSelectiveReset = function () {
       toast(`Reset selesai: ${checked.map((id) => labels[id]).join(", ")}.`, "success");
     },
     { title: "Reset Selektif", confirmText: "Ya, Reset", type: "danger" }
+  );
+};
+
+
+/* ============================================================
+   MANAJEMEN ADMIN
+   ============================================================ */
+
+async function renderAdminAccounts() {
+  const wrap = document.getElementById("adminAccountsTable");
+  if (!wrap) return;
+
+  wrap.innerHTML = '<div class="empty-state">⏳ Memuat akun...</div>';
+
+  try {
+    const [creds, groupAccounts] = await Promise.all([
+      getAdminCredentialsAsync(),
+      getGroupAdminsAsync(),
+    ]);
+
+    // Super admin sebagai baris pertama
+    const superAdminRow = {
+      id: "__super__",
+      username: creds.user,
+      passHash: creds.passHash,
+      role: "super_admin",
+      group: null,
+    };
+
+    const allAccounts = [superAdminRow, ...groupAccounts];
+
+    if (allAccounts.length === 0) {
+      wrap.innerHTML = '<div class="empty-state">👤 Belum ada akun.</div>';
+      return;
+    }
+
+    const rows = allAccounts.map((acc, i) => {
+      const isSuperAdmin = acc.id === "__super__";
+      const roleBadge = isSuperAdmin
+        ? `<span class="badge-role badge-super">Super Admin</span>`
+        : `<span class="badge-role badge-group">Admin Grup</span>`;
+      const grupCell = acc.group ? `Grup ${acc.group}` : `<span style="color:var(--text-tertiary)">—</span>`;
+      const aksiCell = isSuperAdmin
+        ? `<button class="btn btn-ghost sm" onclick="openGroupAdminModal('__super__')">✏️ Edit</button>`
+        : `
+          <button class="btn btn-ghost sm" onclick="openGroupAdminModal('${acc.id}')">✏️ Edit</button>
+          <button class="btn btn-danger sm" onclick="deleteAdminAccount('${acc.id}')">🗑</button>
+        `;
+
+      return `
+        <tr>
+          <td style="text-align:center;color:var(--text-tertiary)">${i + 1}</td>
+          <td style="font-weight:600">${acc.username}</td>
+          <td>
+            <div class="pw-cell" data-hash="${acc.passHash}">
+              <span class="pw-dots">••••••••</span>
+              <button class="btn-pw-toggle" onclick="togglePwVisibility(this)" title="Tampilkan/sembunyikan password">👁</button>
+            </div>
+          </td>
+          <td>${roleBadge}</td>
+          <td>${grupCell}</td>
+          <td>
+            <div style="display:flex;gap:6px;justify-content:flex-end">
+              ${aksiCell}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    wrap.innerHTML = `
+      <div style="overflow-x:auto;">
+        <table class="accounts-table">
+          <thead>
+            <tr>
+              <th style="width:40px;text-align:center">No</th>
+              <th>Username</th>
+              <th>Password</th>
+              <th>Role</th>
+              <th>Grup</th>
+              <th style="text-align:right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  } catch (e) {
+    wrap.innerHTML = '<div class="empty-state">❌ Gagal memuat akun.</div>';
+    console.error(e);
+  }
+}
+
+window.togglePwVisibility = function (btn) {
+  const cell = btn.closest(".pw-cell");
+  const dotsEl = cell.querySelector(".pw-dots");
+  const isHidden = dotsEl.textContent.includes("•");
+  if (isHidden) {
+    // Tampilkan — hash saja, bukan plain text (tidak bisa decrypt)
+    dotsEl.textContent = cell.dataset.hash.slice(0, 12) + "...";
+    btn.textContent = "🙈";
+  } else {
+    dotsEl.textContent = "••••••••";
+    btn.textContent = "👁";
+  }
+};
+
+async function openGroupAdminModal(id) {
+  const isSuperAdmin = id === "__super__";
+  const isEdit = !!id;
+
+  let existingAcc = null;
+  let groupAccounts = [];
+
+  try {
+    groupAccounts = await getGroupAdminsAsync();
+    if (isEdit && !isSuperAdmin) {
+      existingAcc = groupAccounts.find((a) => a.id === id);
+    } else if (isSuperAdmin) {
+      const creds = await getAdminCredentialsAsync();
+      existingAcc = { id: "__super__", username: creds.user, role: "super_admin", group: null };
+    }
+  } catch (e) {
+    toast("Gagal memuat data akun", "error");
+    return;
+  }
+
+  // Grup yang sudah punya admin (untuk disable opsi)
+  const usedGroups = groupAccounts
+    .filter((a) => a.group && a.id !== id)
+    .map((a) => a.group);
+
+  const groupOptions = GROUPS.map((g) => {
+    const isUsed = usedGroups.includes(g);
+    return `<option value="${g}" ${existingAcc?.group === g ? "selected" : ""} ${isUsed ? "disabled" : ""}>${g}${isUsed ? " (sudah ada admin)" : ""}</option>`;
+  }).join("");
+
+  const titleText = isSuperAdmin ? "✏️ Edit Super Admin" : isEdit ? "✏️ Edit Admin Grup" : "➕ Tambah Admin Grup";
+
+  openModal(titleText, `
+    <div class="form-grid" style="gap:16px">
+      <div>
+        <label>Username</label>
+        <input id="gaUsername" class="input" value="${existingAcc?.username || ""}" placeholder="Username" autocomplete="off"/>
+      </div>
+      <div>
+        <label>Password ${isEdit ? "(kosongkan jika tidak ingin mengubah)" : ""}</label>
+        <input id="gaPassword" class="input" type="password" placeholder="${isEdit ? "Kosongkan jika tidak diubah" : "Min. 6 karakter"}" autocomplete="new-password"/>
+      </div>
+      ${!isSuperAdmin ? `
+      <div>
+        <label>Role</label>
+        <select id="gaRole" class="input" onchange="toggleGrupField()">
+          <option value="group_admin" ${existingAcc?.role === "group_admin" ? "selected" : ""}>Admin Grup</option>
+        </select>
+      </div>
+      <div id="gaGrupField">
+        <label>Grup yang Di-handle</label>
+        <select id="gaGrup" class="input">
+          <option value="">-- Pilih Grup --</option>
+          ${groupOptions}
+        </select>
+      </div>
+      ` : `<input type="hidden" id="gaRole" value="super_admin"/>`}
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary" onclick="saveAdminAccount('${id || ""}', ${isSuperAdmin})">💾 Simpan</button>
+    </div>
+  `);
+}
+
+window.toggleGrupField = function () {
+  const role = document.getElementById("gaRole")?.value;
+  const grupField = document.getElementById("gaGrupField");
+  if (grupField) grupField.style.display = role === "group_admin" ? "block" : "none";
+};
+
+window.saveAdminAccount = async function (id, isSuperAdmin) {
+  const username = document.getElementById("gaUsername")?.value.trim();
+  const password = document.getElementById("gaPassword")?.value;
+  const role = document.getElementById("gaRole")?.value || "group_admin";
+  const group = document.getElementById("gaGrup")?.value || null;
+
+  if (!username) { toast("Username tidak boleh kosong", "error"); return; }
+  if (!id && password.length < 6) { toast("Password minimal 6 karakter", "error"); return; }
+  if (id && password && password.length < 6) { toast("Password minimal 6 karakter", "error"); return; }
+  if (!isSuperAdmin && role === "group_admin" && !group) {
+    toast("Pilih grup yang di-handle", "error"); return;
+  }
+
+  try {
+    if (isSuperAdmin) {
+      // Update super admin credentials
+      if (password) {
+        await saveAdminCredentialsAsync(username, password);
+      } else {
+        // Update username saja tanpa ubah password
+        const creds = await getAdminCredentialsAsync();
+        await _db.collection(FS_COL).doc(FS_CREDS_DOC).set({ user: username, passHash: creds.passHash });
+      }
+      toast("Super Admin berhasil diperbarui ✅", "success");
+    } else if (id) {
+      await updateGroupAdminAsync(id, username, password, role, group);
+      toast("Admin berhasil diperbarui ✅", "success");
+    } else {
+      await addGroupAdminAsync(username, password, role, group);
+      toast("Admin baru berhasil ditambahkan ✅", "success");
+    }
+    closeModal();
+    await renderAdminAccounts();
+  } catch (e) {
+    toast("Gagal menyimpan: " + e.message, "error");
+  }
+};
+
+window.deleteAdminAccount = function (id) {
+  confirmModal(
+    "Hapus akun admin ini? Aksi tidak bisa dibatalkan.",
+    async () => {
+      try {
+        await deleteGroupAdminAsync(id);
+        toast("Akun berhasil dihapus", "success");
+        await renderAdminAccounts();
+      } catch (e) {
+        toast("Gagal menghapus: " + e.message, "error");
+      }
+    },
+    { title: "Hapus Admin", confirmText: "Ya, Hapus", type: "danger" }
   );
 };
 

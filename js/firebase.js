@@ -58,10 +58,11 @@ function getDB() {
 }
 
 // ─── 3. KONSTANTA DOKUMEN FIRESTORE ─────────────────────────
-const FS_COL        = "tournament";   // nama collection
-const FS_MAIN_DOC   = "main";         // doc: teams, matches, bracket, timeline
-const FS_SETTINGS_DOC = "settings";   // doc: tournamentName, logo, maxTeamsPerGroup
-const FS_CREDS_DOC  = "credentials";  // doc: user, passHash
+const FS_COL          = "tournament";   // nama collection
+const FS_MAIN_DOC     = "main";         // doc: teams, matches, bracket, timeline
+const FS_SETTINGS_DOC = "settings";     // doc: tournamentName, logo, maxTeamsPerGroup
+const FS_CREDS_DOC    = "credentials";  // doc: user, passHash
+const FS_GROUP_ADMINS = "groupAdmins";  // doc: accounts array (admin per grup)
 
 // ─── 4. SHA-256 HELPER ──────────────────────────────────────
 /**
@@ -180,6 +181,73 @@ async function verifyAdminLogin(inputUser, inputPass) {
   const creds = await getAdminCredentialsAsync();
   const inputHash = await sha256(inputPass);
   return inputUser === creds.user && inputHash === creds.passHash;
+}
+
+
+// ─── 8b. GROUP ADMINS (admin per grup) ───────────────────────
+
+/**
+ * Ambil semua akun admin grup dari Firestore.
+ * Mengembalikan Promise<Array>
+ */
+async function getGroupAdminsAsync() {
+  try {
+    const doc = await _db.collection(FS_COL).doc(FS_GROUP_ADMINS).get();
+    if (doc.exists) return doc.data().accounts || [];
+  } catch (e) {
+    console.error("[Firestore] getGroupAdminsAsync error:", e);
+  }
+  return [];
+}
+
+async function saveGroupAdminsAsync(accounts) {
+  try {
+    await _db.collection(FS_COL).doc(FS_GROUP_ADMINS).set({ accounts });
+  } catch (e) {
+    console.error("[Firestore] saveGroupAdminsAsync error:", e);
+    throw e;
+  }
+}
+
+async function addGroupAdminAsync(username, plainPass, role, group) {
+  const accounts = await getGroupAdminsAsync();
+  const passHash = await sha256(plainPass);
+  const newAccount = {
+    id: "ga" + Date.now(),
+    username,
+    passHash,
+    role,
+    group: group || null,
+  };
+  accounts.push(newAccount);
+  await saveGroupAdminsAsync(accounts);
+  return newAccount;
+}
+
+async function updateGroupAdminAsync(id, username, plainPass, role, group) {
+  const accounts = await getGroupAdminsAsync();
+  const idx = accounts.findIndex((a) => a.id === id);
+  if (idx === -1) throw new Error("Akun tidak ditemukan");
+  accounts[idx].username = username;
+  accounts[idx].role = role;
+  accounts[idx].group = group || null;
+  if (plainPass) {
+    accounts[idx].passHash = await sha256(plainPass);
+  }
+  await saveGroupAdminsAsync(accounts);
+  return accounts[idx];
+}
+
+async function deleteGroupAdminAsync(id) {
+  const accounts = await getGroupAdminsAsync();
+  const filtered = accounts.filter((a) => a.id !== id);
+  await saveGroupAdminsAsync(filtered);
+}
+
+async function verifyGroupAdminLogin(inputUser, inputPass) {
+  const accounts = await getGroupAdminsAsync();
+  const inputHash = await sha256(inputPass);
+  return accounts.find((a) => a.username === inputUser && a.passHash === inputHash) || null;
 }
 
 // ─── 8. REAL-TIME LISTENER ──────────────────────────────────
