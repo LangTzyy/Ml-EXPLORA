@@ -2943,600 +2943,121 @@ body {
 .btn-pw-toggle:hover {
   opacity: 1;
 }
-
 /* ============================================================
-   ADMIN GRUP — TAMBAHAN CSS (v2)
-   Copy-paste ke bagian BAWAH admin.css, GANTI yang lama
+   SUPER ADMIN BADGE — PREMIUM
    ============================================================ */
-
-/* ── Badge "Admin Grup X" di header ── */
-.group-admin-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  background: rgba(0, 200, 83, 0.12);
-  color: #00c853;
-  border: 1px solid rgba(0, 200, 83, 0.3);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-/* ── Login error ── */
-.login-error {
-  background: rgba(255, 68, 68, 0.1);
-  border: 1px solid rgba(255, 68, 68, 0.3);
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 0.82rem;
-  color: #ff6b6b;
-  text-align: center;
-}
-
-/* ── User info card di dashboard ── */
-.ga-user-info-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 18px;
-  background: rgba(0, 102, 255, 0.06);
-  border: 1px solid rgba(0, 102, 255, 0.2);
-  border-radius: var(--radius-md);
-  margin-bottom: 4px;
-}
-.ga-user-avatar {
-  width: 42px;
-  height: 42px;
-  background: rgba(0, 102, 255, 0.15);
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 1.2rem;
-  flex-shrink: 0;
-}
-.ga-user-name {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.ga-user-role {
-  font-size: 0.75rem;
-  color: #00c853;
-  margin-top: 2px;
-  font-weight: 600;
-}
-
-/* ── Match row di upcoming ── */
-.ga-match-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-}
-.ga-match-num {
-  width: 22px;
-  height: 22px;
-  background: rgba(0,102,255,0.15);
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--blue-electric);
-  flex-shrink: 0;
-}
-.ga-match-teams {
-  flex: 1;
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--text-primary);
-}
-.ga-match-teams .vs {
-  color: var(--text-tertiary);
-  font-weight: 400;
-  margin: 0 4px;
-}
-
-/* ── Schedule card ── */
-.ga-schedule-summary {
-  display: flex;
-  gap: 20px;
-  padding: 10px 16px;
-  background: rgba(0,102,255,0.05);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
-  margin-bottom: 14px;
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-  flex-wrap: wrap;
-}
-.ga-schedule-summary strong {
-  color: var(--text-primary);
-}
-.ga-schedule-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 18px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  margin-bottom: 10px;
-  transition: border-color 0.2s;
-}
-.ga-schedule-card:hover {
-  border-color: var(--blue-primary);
-}
-.ga-schedule-done {
-  border-left: 3px solid #00c853;
-}
-.ga-schedule-num {
-  width: 32px;
-  height: 32px;
-  background: rgba(0,102,255,0.12);
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--blue-electric);
-  flex-shrink: 0;
-}
-.ga-schedule-body {
-  flex: 1;
-  min-width: 0;
-}
-.ga-schedule-teams {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.ga-team-name {
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--text-primary);
-}
-.ga-vs-badge {
-  background: rgba(0,102,255,0.15);
-  color: var(--blue-electric);
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  flex-shrink: 0;
-}
-.ga-bo-badge {
-  background: rgba(255,255,255,0.05);
-  color: var(--text-tertiary);
-  border: 1px solid var(--border-light);
-  border-radius: 4px;
-  padding: 1px 7px;
-  font-size: 0.68rem;
-  font-weight: 700;
-}
-.ga-schedule-tags {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-  flex-wrap: wrap;
-}
-.ga-schedule-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 5px;
-  flex-shrink: 0;
-}
-.ga-score-display {
-  font-size: 1.2rem;
-  font-weight: 800;
-  color: var(--blue-electric);
-  letter-spacing: 1px;
-  font-family: monospace;
-}
-.ga-score-display span {
-  color: var(--text-tertiary);
-  margin: 0 4px;
-}
-
-/* ── Match status badges (shared) ── */
-.match-badge {
-  background: rgba(0, 102, 255, 0.15);
-  color: var(--blue-electric);
-  border: 1px solid rgba(0, 102, 255, 0.25);
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.match-status {
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 20px;
-  white-space: nowrap;
-}
-.status-done {
-  background: rgba(0, 200, 83, 0.12);
-  color: #00c853;
-  border: 1px solid rgba(0, 200, 83, 0.25);
-}
-.status-pending {
-  background: rgba(255, 171, 0, 0.1);
-  color: #ffab00;
-  border: 1px solid rgba(255, 171, 0, 0.25);
-}
-
-/* ── Result card ── */
-.ga-result-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  margin-bottom: 10px;
-  transition: border-color 0.2s;
-}
-.ga-result-card:hover {
-  border-color: var(--blue-primary);
-}
-.ga-result-done {
-  border-left: 3px solid #00c853;
-}
-.ga-result-num {
-  width: 32px;
-  height: 32px;
-  background: rgba(0,102,255,0.12);
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--blue-electric);
-  flex-shrink: 0;
-}
-.ga-result-center {
-  flex: 1;
-  min-width: 0;
-}
-.ga-result-teams {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.ga-team-name-lg {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.ga-result-score {
-  font-size: 1.3rem;
-  font-weight: 900;
-  color: var(--blue-electric);
-  font-family: monospace;
-  letter-spacing: 2px;
-}
-.ga-result-action {
-  flex-shrink: 0;
-}
-
-/* ── Score modal ── */
-.score-modal-body {
-  padding: 4px 0 16px;
-}
-.score-modal-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-}
-.score-modal-team {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  text-align: center;
-}
-.score-modal-vs {
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: var(--blue-electric);
-  background: rgba(0,102,255,0.12);
-  padding: 3px 10px;
-  border-radius: 6px;
-  letter-spacing: 1px;
-  flex-shrink: 0;
-}
-.score-modal-inputs {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-.score-input-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-.score-input-group label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-}
-.score-stepper {
-  display: flex;
-  align-items: center;
-  background: var(--bg-black-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-.score-stepper-btn {
-  width: 44px;
-  height: 56px;
-  background: transparent;
-  border: none;
-  color: var(--text-primary);
-  font-size: 1.4rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s;
-  display: grid;
-  place-items: center;
-}
-.score-stepper-btn:hover {
-  background: rgba(0,102,255,0.2);
-  color: var(--blue-electric);
-}
-.score-stepper-val {
-  width: 72px;
-  height: 56px;
-  text-align: center;
-  font-size: 1.8rem;
-  font-weight: 900;
-  color: var(--blue-electric);
-  background: transparent;
-  border: none;
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-  font-family: monospace;
-  -moz-appearance: textfield;
-}
-.score-stepper-val::-webkit-outer-spin-button,
-.score-stepper-val::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-}
-.score-stepper-val:focus {
-  outline: none;
-  background: rgba(0,102,255,0.05);
-}
-.score-separator {
-  font-size: 2rem;
-  font-weight: 900;
-  color: var(--text-tertiary);
-  flex-shrink: 0;
-  padding-top: 28px;
-}
-
-/* ── Standings table (GA) ── */
-.ga-standings-wrap {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-.ga-standings-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px;
-  background: rgba(0,102,255,0.08);
-  border-bottom: 1px solid var(--border);
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.ga-standings-legend {
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--text-tertiary);
-}
-.ga-standings-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 400px;
-}
-.ga-standings-table .ga-th-center {
-  padding: 10px 12px;
-  text-align: center;
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--text-tertiary);
-  border-bottom: 1px solid var(--border);
-}
-.ga-standings-table .ga-th-left {
-  padding: 10px 16px;
-  text-align: left;
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--text-tertiary);
-  border-bottom: 1px solid var(--border);
-}
-.ga-standings-table td {
-  padding: 14px 12px;
-  border-bottom: 1px solid var(--border-light);
-  vertical-align: middle;
-}
-.ga-standings-table tbody tr:last-child td {
-  border-bottom: none;
-}
-.ga-standings-table tbody tr:hover td {
-  background: rgba(0,102,255,0.04);
-}
-.ga-standing-qualify td {
-  background: rgba(0, 200, 83, 0.04);
-}
-.ga-standing-rank {
-  text-align: center;
-  font-size: 1.1rem;
-  font-weight: 800;
-}
-.ga-standing-team {
-  padding-left: 16px !important;
-}
-.ga-standing-team-inner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.ga-team-logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-.ga-team-fullname {
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.ga-team-shorttag {
-  font-size: 0.72rem;
-  color: var(--text-tertiary);
-  font-family: monospace;
-  background: rgba(255,255,255,0.05);
-  padding: 1px 6px;
-  border-radius: 4px;
-  display: inline-block;
-  margin-top: 2px;
-}
-.ga-standing-num {
-  text-align: center;
-  color: var(--text-secondary);
-  font-weight: 600;
-  font-size: 0.88rem;
-}
-.ga-standing-win {
-  text-align: center;
-  color: #4ade80;
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-.ga-standing-draw {
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: 0.88rem;
-}
-.ga-standing-lose {
-  text-align: center;
-  color: var(--danger);
-  font-weight: 600;
-  font-size: 0.88rem;
-}
-.ga-standing-pts {
-  text-align: center;
-  font-size: 1.05rem;
-  font-weight: 900;
-  color: var(--blue-electric);
-}
-.ga-standing-qualify .ga-standing-pts {
-  color: gold;
-}
-.ga-standings-footer {
-  padding: 10px 16px;
-  font-size: 0.72rem;
-  color: var(--text-tertiary);
-  border-top: 1px solid var(--border-light);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.ga-legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.ga-legend-dot.qualify {
-  background: #00c853;
-}
-/* ── Fix: icon mata pw-toggle lebih terlihat ── */
-.btn-pw-toggle {
-  background: rgba(0, 102, 255, 0.1) !important;
-  border: 1px solid rgba(0, 102, 255, 0.2) !important;
-  border-radius: 6px !important;
-  cursor: pointer;
-  font-size: 1rem !important;
-  opacity: 1 !important;
-  padding: 4px 8px !important;
-  line-height: 1;
-  transition: background 0.2s, border-color 0.2s;
-  color: var(--text-primary);
-}
-
-.btn-pw-toggle:hover {
-  background: rgba(0, 102, 255, 0.2) !important;
-  border-color: var(--blue-electric) !important;
-}
-/* ── Super Admin badge di header ── */
 .super-admin-badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 7px 16px;
   border-radius: 20px;
-  background: linear-gradient(135deg, rgba(0,102,255,0.2), rgba(58,159,255,0.1));
-  border: 1px solid rgba(0,102,255,0.4);
-  color: var(--blue-electric);
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
   flex-shrink: 0;
-  box-shadow: 0 0 16px rgba(0,102,255,0.15), inset 0 1px 0 rgba(255,255,255,0.05);
-  text-shadow: 0 0 12px rgba(58,159,255,0.5);
+
+  /* Gradient border via background-clip trick */
+  background:
+    linear-gradient(var(--bg-black-3), var(--bg-black-3)) padding-box,
+    linear-gradient(135deg, #0066ff, #3a9fff, #00c8ff, #3a9fff, #0066ff) border-box;
+  border: 1.5px solid transparent;
+
+  /* Glow */
+  box-shadow:
+    0 0 18px rgba(0, 102, 255, 0.25),
+    0 0 40px rgba(0, 102, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  animation: badgePulseGlow 3s ease-in-out infinite;
 }
 
+/* Shimmer sweep */
+.super-admin-badge::before {
+  content: "";
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+  animation: badgeShimmer 3s ease-in-out infinite;
+}
+
+/* Inner top highlight */
+.super-admin-badge::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 10%; right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(58, 159, 255, 0.6), transparent);
+}
+
+@keyframes badgePulseGlow {
+  0%, 100% {
+    box-shadow:
+      0 0 12px rgba(0, 102, 255, 0.2),
+      0 0 30px rgba(0, 102, 255, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  50% {
+    box-shadow:
+      0 0 22px rgba(0, 102, 255, 0.4),
+      0 0 50px rgba(0, 102, 255, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+}
+
+@keyframes badgeShimmer {
+  0% { left: -100%; }
+  60%, 100% { left: 160%; }
+}
+
+/* Dot — live pulse */
 .super-admin-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--blue-electric);
   flex-shrink: 0;
+  position: relative;
   box-shadow: 0 0 6px var(--blue-electric);
-  animation: dotPulse 2s ease-in-out infinite;
 }
 
-@keyframes dotPulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(58,159,255,0.5); }
-  50% { opacity: 0.8; box-shadow: 0 0 0 5px rgba(58,159,255,0); }
+.super-admin-dot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: rgba(58, 159, 255, 0.3);
+  animation: dotRipple 1.8s ease-out infinite;
+}
+
+@keyframes dotRipple {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* Text */
+.super-admin-badge > span:last-child {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #e0f0ff, #3a9fff, #e0f0ff);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: textShine 3s linear infinite;
+  font-family: var(--font-primary);
+}
+
+@keyframes textShine {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
 }

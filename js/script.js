@@ -530,13 +530,14 @@ function renderStandings(data) {
         </table>
         <div class="standings-legend">
           <span>M: Match</span>
-          <span>W: Menang</span>
-          <span>D: Seri</span>
-          <span>L: Kalah</span>
+          <span>W: Win</span>
+          <span>D: Draw/Seri</span>
+          <span>L: Lose</span>
+          <span>PTS: Points</span>
           <span class="legend-sep">•</span>
-          <span class="pts-pos">Menang +1</span>
-          <span>Seri 0</span>
-          <span class="pts-neg">Kalah −1</span>
+          <span class="pts-pos">Win +1</span>
+          <span>Draw 0</span>
+          <span class="pts-neg">Lose −1</span>
         </div>
       </div>`;
   }).join("");

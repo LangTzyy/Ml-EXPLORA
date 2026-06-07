@@ -117,14 +117,11 @@ async function showGroupShell() {
   document.getElementById("loginOverlay").classList.add("hidden");
   document.getElementById("adminShell").classList.remove("hidden");
 
-  const badge = document.getElementById("groupBadge");
-  if (badge && _gaSession?.group) {
-    badge.textContent = `Admin Grup ${_gaSession.group}`;
-  }
-  const headerUsername = document.getElementById("headerUsername");
-  if (headerUsername && _gaSession?.username) {
-    headerUsername.textContent = _gaSession.username;
-  }
+  // Format header: "username · Admin Grup X"
+  const elUser = document.getElementById("gaHeaderUsername");
+  const elRole = document.getElementById("gaHeaderRole");
+  if (elUser) elUser.textContent = _gaSession?.username || "—";
+  if (elRole) elRole.textContent = `Admin Grup ${_gaSession?.group || "?"}`;
 
   await initData();
 
@@ -234,7 +231,7 @@ function renderGADashboard() {
 }
 
 /* ============================================================
-   JADWAL — perbaikan: tampilan card yang lebih rapi
+   JADWAL — persis seperti super admin
    ============================================================ */
 function renderGASchedule() {
   const wrap = document.getElementById("scheduleList");
@@ -252,32 +249,28 @@ function renderGASchedule() {
   wrap.innerHTML = matches.map((m) => {
     const tA = teamById(m.teamA, data);
     const tB = teamById(m.teamB, data);
-    const scoreTxt = m.played ? `${m.scoreA} – ${m.scoreB}` : "– vs –";
+    const scoreText = m.played ? `${m.scoreA} - ${m.scoreB}` : "- : -";
+    const statusClass = m.played ? "status-done" : "status-pending";
+    const statusText = m.played ? "✓ Selesai" : "⏳ Belum";
     return `
       <div class="match-card-list">
         <div class="match-info">
           <span class="match-group-badge">Grup ${group}</span>
-          <span class="ga-bo-badge match-date-badge">BO1</span>
+          <span class="match-date-badge">BO1</span>
         </div>
         <div class="match-teams">
-          <div class="match-team-item">
-            <span class="match-team-name">${tA?.name || "?"}</span>
-          </div>
-          <span class="match-score-badge">${scoreTxt}</span>
-          <div class="match-team-item right">
-            <span class="match-team-name">${tB?.name || "?"}</span>
-          </div>
+          <div class="match-team-item"><span class="match-team-name">${tA?.name || "???"}</span></div>
+          <div class="match-score-badge">${scoreText}</div>
+          <div class="match-team-item right"><span class="match-team-name">${tB?.name || "???"}</span></div>
         </div>
-        <div class="match-status ${m.played ? "status-done" : "status-pending"}">
-          ${m.played ? "✅ Selesai" : "⏳ Belum"}
-        </div>
+        <div class="match-status"><span class="${statusClass}">${statusText}</span></div>
       </div>
     `;
   }).join("");
 }
 
 /* ============================================================
-   INPUT HASIL
+   INPUT HASIL — persis seperti super admin (inline BO1)
    ============================================================ */
 function renderGAResults() {
   const wrap = document.getElementById("resultsList");
@@ -292,121 +285,54 @@ function renderGAResults() {
     return;
   }
 
-  wrap.innerHTML = matches.map((m, i) => {
+  wrap.innerHTML = matches.map((m) => {
     const tA = teamById(m.teamA, data);
     const tB = teamById(m.teamB, data);
-    const statusBadge = m.played
-      ? `<span class="match-status status-done">✅ Selesai</span>`
-      : `<span class="match-status status-pending">⏳ Belum</span>`;
-    const actionBtn = m.played
-      ? `<button class="btn btn-ghost sm" onclick="openScoreModal('${m.id}')">✏️ Edit Skor</button>`
-      : `<button class="btn btn-primary sm" onclick="openScoreModal('${m.id}')">⚽ Input Skor</button>`;
-
     return `
-      <div class="ga-result-card ${m.played ? "ga-result-done" : ""}">
-        <div class="ga-result-num">#${i + 1}</div>
-        <div class="ga-result-center">
-          <div class="ga-result-teams">
-            <span class="ga-team-name-lg">${tA?.name || "?"}</span>
-            ${m.played
-              ? `<span class="ga-result-score">${m.scoreA} – ${m.scoreB}</span>`
-              : `<span class="ga-vs-badge">VS</span>`
-            }
-            <span class="ga-team-name-lg">${tB?.name || "?"}</span>
+      <div class="match-card-list">
+        <div class="match-info"><span class="match-group-badge">Grup ${group}</span></div>
+        <div class="match-teams">
+          <div class="match-team-item"><span class="match-team-name">${tA?.name || "???"}</span></div>
+          <div class="score-input-mini">
+            <input type="number" min="0" max="1" value="${m.scoreA ?? ""}" id="sA-${m.id}" placeholder="0"/>
+            <span>:</span>
+            <input type="number" min="0" max="1" value="${m.scoreB ?? ""}" id="sB-${m.id}" placeholder="0"/>
           </div>
-          <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
-            <span class="match-badge">Grup ${group}</span>
-            ${statusBadge}
-          </div>
+          <div class="match-team-item right"><span class="match-team-name">${tB?.name || "???"}</span></div>
         </div>
-        <div class="ga-result-action">
-          ${actionBtn}
+        <div class="match-actions">
+          <button class="btn btn-primary sm" onclick="saveBO1GA('${m.id}')">💾 Simpan</button>
         </div>
       </div>
     `;
   }).join("");
 }
 
-/* ── Modal Input / Edit Skor BO1 — hanya 1-0 atau 0-1 ── */
-window.openScoreModal = function (matchId) {
+window.saveBO1GA = async function(id) {
   const data = getData();
-  const m = data.matches.find((x) => x.id === matchId);
+  const m = data.matches.find((x) => x.id === id);
   if (!m) { toast("Match tidak ditemukan", "error"); return; }
-  const tA = teamById(m.teamA, data);
-  const tB = teamById(m.teamB, data);
 
-  openGAModal(
-    m.played ? "✏️ Edit Hasil (BO1)" : "⚽ Input Hasil (BO1)",
-    `
-    <div class="score-modal-body">
-      <div class="score-modal-title">
-        <span class="score-modal-team">${tA?.name || "Tim A"}</span>
-        <span class="score-modal-vs">VS</span>
-        <span class="score-modal-team">${tB?.name || "Tim B"}</span>
-      </div>
-      <p style="text-align:center;font-size:0.8rem;color:var(--text-tertiary);margin-bottom:16px;">
-        Babak Grup BO1 — Pilih pemenang pertandingan ini
-      </p>
-      <div class="bo1-choices">
-        <button type="button"
-          class="bo1-choice-btn ${m.played && m.scoreA === 1 ? "bo1-selected" : ""}"
-          onclick="selectBO1Winner('A')">
-          <div class="bo1-team-name">${tA?.name || "Tim A"}</div>
-          <div class="bo1-score-preview">1 – 0</div>
-          <div class="bo1-win-label">Menang</div>
-        </button>
-        <button type="button"
-          class="bo1-choice-btn ${m.played && m.scoreB === 1 ? "bo1-selected" : ""}"
-          onclick="selectBO1Winner('B')">
-          <div class="bo1-team-name">${tB?.name || "Tim B"}</div>
-          <div class="bo1-score-preview">0 – 1</div>
-          <div class="bo1-win-label">Menang</div>
-        </button>
-      </div>
-      <div id="bo1Error" class="bo1-error hidden">⚠️ Pilih salah satu pemenang terlebih dahulu!</div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeGAModal()">Batal</button>
-      <button class="btn btn-primary" onclick="saveBO1Score('${matchId}')">💾 Simpan</button>
-    </div>
-    `
-  );
-};
+  const a = parseInt(document.getElementById("sA-" + id)?.value, 10);
+  const b = parseInt(document.getElementById("sB-" + id)?.value, 10);
 
-let _bo1Winner = null;
-
-window.selectBO1Winner = function(side) {
-  _bo1Winner = side;
-  document.querySelectorAll(".bo1-choice-btn").forEach(btn => btn.classList.remove("bo1-selected"));
-  const idx = side === "A" ? 0 : 1;
-  document.querySelectorAll(".bo1-choice-btn")[idx]?.classList.add("bo1-selected");
-  document.getElementById("bo1Error")?.classList.add("hidden");
-};
-
-window.saveBO1Score = async function(matchId) {
-  if (!_bo1Winner) {
-    document.getElementById("bo1Error")?.classList.remove("hidden");
+  if (isNaN(a) || isNaN(b)) {
+    toast("Masukkan skor yang valid (0 atau 1)", "error");
     return;
   }
-  const scoreA = _bo1Winner === "A" ? 1 : 0;
-  const scoreB = _bo1Winner === "B" ? 1 : 0;
+  if (![0, 1].includes(a) || ![0, 1].includes(b) || a === b) {
+    toast("Skor BO1 hanya boleh 1-0 atau 0-1", "error");
+    return;
+  }
 
   try {
-    const data = getData();
-    const m = data.matches.find((x) => x.id === matchId);
-    if (!m) { toast("Match tidak ditemukan", "error"); return; }
-
-    m.scoreA = scoreA;
-    m.scoreB = scoreB;
+    m.scoreA = a;
+    m.scoreB = b;
     m.played = true;
-
     await saveDataAsync(data);
     _cachedData = data;
-    _bo1Winner = null;
-
-    closeGAModal();
     renderGroupAdmin();
-    toast(`Hasil disimpan: ${scoreA} – ${scoreB} ✅`, "success");
+    toast(`Skor disimpan: ${a} – ${b} ✅`, "success");
   } catch (e) {
     toast("Gagal menyimpan: " + e.message, "error");
     console.error(e);
@@ -462,39 +388,35 @@ function renderGAStandings() {
   }).join("");
 
   wrap.innerHTML = `
-    <div class="ga-standings-wrap" style="width:100%;">
+    <div class="ga-standings-wrap">
       <div class="ga-standings-header">
         <span>Klasemen Grup ${group}</span>
-        <span class="ga-standings-legend">Win +1 · Draw 0 · Loss −1</span>
       </div>
-      <div style="overflow-x:auto;width:100%;">
-        <table class="ga-standings-table" style="width:100%;min-width:500px;">
-          <colgroup>
-            <col style="width:56px;">
-            <col>
-            <col style="width:72px;">
-            <col style="width:72px;">
-            <col style="width:72px;">
-            <col style="width:72px;">
-            <col style="width:80px;">
-          </colgroup>
-          <thead>
-            <tr>
-              <th class="ga-th-center">#</th>
-              <th class="ga-th-left">Tim</th>
-              <th class="ga-th-center" title="Main">Main</th>
-              <th class="ga-th-center" title="Menang">Menang</th>
-              <th class="ga-th-center" title="Draw">Draw</th>
-              <th class="ga-th-center" title="Kalah">Kalah</th>
-              <th class="ga-th-center" title="Poin">Poin</th>
-            </tr>
-          </thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>
-      </div>
+      <table class="ga-standings-table">
+        <colgroup>
+          <col style="width:52px;">
+          <col>
+          <col style="width:68px;">
+          <col style="width:68px;">
+          <col style="width:68px;">
+          <col style="width:68px;">
+          <col style="width:76px;">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="ga-th-center">#</th>
+            <th class="ga-th-left">Nama Tim</th>
+            <th class="ga-th-center">Match</th>
+            <th class="ga-th-center">Win</th>
+            <th class="ga-th-center">Draw</th>
+            <th class="ga-th-center">Lose</th>
+            <th class="ga-th-center">Points</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
       <div class="ga-standings-footer">
-        <span class="ga-legend-dot qualify"></span> Top 2 lolos ke playoff
-        <span style="margin-left:16px;">Main · Menang · Draw · Kalah · Poin</span>
+        <span>M: Match · W: Win · D: Draw · L: Lose · P: Points</span>
       </div>
     </div>
   `;
@@ -541,7 +463,7 @@ function buildGAExportContent() {
           <th style="text-align:center;width:50px;">Menang</th>
           <th style="text-align:center;width:50px;">Draw</th>
           <th style="text-align:center;width:50px;">Kalah</th>
-          <th style="text-align:center;width:60px;">Poin</th>
+          <th style="text-align:center;width:60px;">Points</th>
         </tr>
       </thead>
       <tbody>
@@ -559,7 +481,7 @@ function buildGAExportContent() {
       </tbody>
     </table>
     <p style="font-size:11px;color:#888;font-family:Arial,sans-serif;">
-      ★ Top 2 lolos ke playoff &nbsp;|&nbsp; Win=+1 · Draw=0 · Loss=−1
+      ★ Top 2 lolos ke playoff &nbsp;|&nbsp; Win=+1 · Draw=0 · Lose=−1
     </p>
     <h2 style="font-family:Arial,sans-serif;margin-top:24px;">Hasil Pertandingan Grup ${group}</h2>
   `;
