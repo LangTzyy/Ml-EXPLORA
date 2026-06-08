@@ -2266,6 +2266,31 @@ body {
   line-height: 38px;
 }
 
+/* Bracket Calc Info */
+.settings-bracket-info {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: rgba(0, 102, 255, 0.05);
+  border: 1px solid rgba(0, 102, 255, 0.15);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bracket-calc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.bracket-calc-row strong {
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+.calc-ok  { color: #00c853 !important; }
+.calc-warn { color: #ffab00 !important; }
+
 /* Credentials */
 .credentials-display {
   display: flex;

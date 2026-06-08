@@ -409,7 +409,7 @@ function openTeamModal(id) {
   const t = id ? data.teams.find((x) => x.id === id) : null;
 
   const groupCounts = {};
-  GROUPS.forEach((g) => {
+  getActiveGroups().forEach((g) => {
     groupCounts[g] = 0;
   });
   data.teams.forEach((team) => {
@@ -417,14 +417,12 @@ function openTeamModal(id) {
       groupCounts[team.group]++;
   });
 
-  const groupOptions = GROUPS.map((g) => {
+  const groupOptions = getActiveGroups().map((g) => {
     const count = groupCounts[g];
-    const isFull = count >= 4;
+    const maxPG = getSettings().maxTeamsPerGroup || 4;
     const isSelected = t?.group === g;
-    const disabled = isFull && !isSelected ? "disabled" : "";
-    const label =
-      isFull && !isSelected ? `Grup ${g} (penuh)` : `Grup ${g} (${count}/4)`;
-    return `<option value="${g}" ${isSelected ? "selected" : ""} ${disabled}>${label}</option>`;
+    const label = `Grup ${g} (${count} tim)`;
+    return `<option value="${g}" ${isSelected ? "selected" : ""}>${label}</option>`;
   }).join("");
 
   openModal(
@@ -470,18 +468,11 @@ window.saveTeam = function (id) {
       const newGroupCount = data.teams.filter(
         (x) => x.group === group && x.id !== id,
       ).length;
-      if (newGroupCount >= 4) {
-        toast(`Grup ${group} sudah penuh (maks 4 tim)`, "error");
-        return;
-      }
     }
     Object.assign(t, { name, tag, group });
   } else {
     const groupCount = data.teams.filter((x) => x.group === group).length;
-    if (groupCount >= 4) {
-      toast(`Grup ${group} sudah penuh (maks 4 tim)`, "error");
-      return;
-    }
+    
     data.teams.push({
       id: "t" + Date.now(),
       name,
@@ -764,7 +755,7 @@ function renderAdminStandings() {
 
   const filterGroup =
     document.getElementById("standingsFilter")?.value || "all";
-  const activeGroups = filterGroup === "all" ? GROUPS : [filterGroup];
+  const activeGroups = filterGroup === "all" ? getActiveGroups() : [filterGroup];
   let html = "";
   activeGroups.forEach((g) => {
     const teams = data.teams.filter((t) => t.group === g);
@@ -789,7 +780,7 @@ function renderAdminStandings() {
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <span class="standings-group-info">
-              ${teams.length}/4 Tim · 
+              ${teams.length} Tim ·
               ${data.matches.filter((m) => m.group === g && m.played).length}/${data.matches.filter((m) => m.group === g).length} Match
             </span>
             <button class="btn btn-ghost sm" onclick="openMoveTeamModal('${g}')">
@@ -897,21 +888,25 @@ window.openMoveSingleTeamModal = function (teamId) {
   );
 
   const groupCounts = {};
-  GROUPS.forEach((g) => {
+  getActiveGroups().forEach((g) => {
     groupCounts[g] = 0;
   });
   data.teams.forEach((t) => {
     if (t.id !== teamId) groupCounts[t.group]++;
   });
 
+  const activeGrps = getActiveGroups();
+  const half = Math.ceil(activeGrps.length / 2);
+  const block1 = activeGrps.slice(0, half);
   const blockColor = (g) =>
-    ["A", "B", "C", "D"].includes(g)
-      ? { color: "#3a9fff", label: "6 Jun" }
-      : { color: "#00c853", label: "7 Jun" };
+    block1.includes(g)
+      ? { color: "#3a9fff", label: "Blok 1" }
+      : { color: "#00c853", label: "Blok 2" };
 
-  const groupOptions = GROUPS.map((g) => {
+  const groupOptions = getActiveGroups().map((g) => {
     const count = groupCounts[g];
-    const isFull = count >= 4;
+    const maxPG = getSettings().maxTeamsPerGroup || 4;
+    const isFull = count >= maxPG;
     const isCurr = g === team.group;
     const bc = blockColor(g);
 
@@ -923,9 +918,8 @@ window.openMoveSingleTeamModal = function (teamId) {
           <span style="font-weight:800;font-size:1rem;color:${isCurr ? "var(--blue-electric)" : "var(--text-primary)"}">Grup ${g}</span>
           <span style="font-size:0.65rem;padding:1px 7px;border-radius:20px;background:${bc.color}22;color:${bc.color};font-weight:600;">${bc.label}</span>
           ${isCurr ? `<span style="font-size:0.65rem;color:var(--blue-electric);font-weight:700;">← Saat ini</span>` : ""}
-          ${isFull && !isCurr ? `<span style="font-size:0.65rem;color:#ff4444;font-weight:700;">Penuh</span>` : ""}
         </div>
-        <span style="font-size:0.75rem;color:var(--text-tertiary);">${count}/4 tim</span>
+        <span style="font-size:0.75rem;color:var(--text-tertiary);">${count}/${maxPG} tim</span>
       </div>
     `;
   }).join("");
@@ -977,10 +971,6 @@ window.doMoveTeam = function (teamId, newGroup) {
   const newGroupCount = data.teams.filter(
     (t) => t.group === newGroup && t.id !== teamId,
   ).length;
-  if (newGroupCount >= 4) {
-    toast(`Grup ${newGroup} sudah penuh (maks 4 tim).`, "error");
-    return;
-  }
 
   let resetCount = 0;
   data.matches = data.matches.filter((m) => {
@@ -1748,7 +1738,7 @@ function generateExportHTML(data, mode = "pdf") {
   const tl = getTimeline(data);
 
   const groups = {};
-  GROUPS.forEach((g) => { groups[g] = []; });
+  getActiveGroups().forEach((g) => { groups[g] = []; });
   data.teams.forEach((t) => {
     if (groups[t.group]) groups[t.group].push(t);
   });
@@ -1782,7 +1772,7 @@ function generateExportHTML(data, mode = "pdf") {
   html += `<h2>📊 KLASEMEN GRUP</h2>
     <p class="section-note">Sistem Poin: Menang = +1 &nbsp;|&nbsp; Seri = 0 &nbsp;|&nbsp; Kalah = -1.</p>`;
 
-  for (const g of GROUPS) {
+  for (const g of getActiveGroups()) {
     if (!groups[g].length) continue;
     const isBlock1 = ["A", "B", "C", "D"].includes(g);
     html += `<h3>Grup ${g} &nbsp;<small style="font-weight:normal;font-size:9pt;color:#888;">${isBlock1 ? "(Blok 1)" : "(Blok 2)"}</small></h3>
@@ -1930,15 +1920,20 @@ function uniqueTag(tag, usedTags) {
 }
 
 function autoAssignGroups(entries) {
-  const maxPerGroup = 4;
-  const BLOCK_1 = ["A", "B", "C", "D"];
-  const BLOCK_2 = ["E", "F", "G", "H"];
+  const settings = getSettings();
+  const maxPerGroup = settings.maxTeamsPerGroup || 4;
 
+  // Hitung jumlah grup yang dibutuhkan secara dinamis
+  const totalTeams = entries.length;
+  const neededGroups = Math.ceil(totalTeams / maxPerGroup);
+  const ALL_GROUPS = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P"];
+  const activeGroups = ALL_GROUPS.slice(0, Math.min(neededGroups, ALL_GROUPS.length));
+
+  // Inisialisasi slot per grup
   const groupSlots = {};
-  [...BLOCK_1, ...BLOCK_2].forEach((g) => { groupSlots[g] = 0; });
+  activeGroups.forEach((g) => { groupSlots[g] = 0; });
 
   let noEmailIdx = 0;
-
   const emailBuckets = {};
   entries.forEach((e) => {
     let em = (e.email || "").toLowerCase().trim();
@@ -1947,30 +1942,30 @@ function autoAssignGroups(entries) {
     emailBuckets[em].push(e);
   });
 
+  // Urutkan bucket terbesar dulu agar distribusi lebih merata
   const bucketList = Object.entries(emailBuckets).sort(([, a], [, b]) => b.length - a.length);
 
   bucketList.forEach(([email, bucket]) => {
     const usedGroups = [];
-    bucket.forEach((entry, slotIndex) => {
-      const targetBlock = slotIndex % 2 === 0 ? BLOCK_1 : BLOCK_2;
+    bucket.forEach((entry) => {
       const usedSet = new Set(usedGroups);
 
-      let picked = targetBlock.find((g) => groupSlots[g] < maxPerGroup && !usedSet.has(g));
+      // Pilih grup aktif dengan slot paling sedikit yang belum dipakai bucket ini
+      let picked = activeGroups
+        .filter((g) => groupSlots[g] < maxPerGroup && !usedSet.has(g))
+        .sort((a, b) => groupSlots[a] - groupSlots[b])[0];
 
+      // Fallback: abaikan constraint usedGroups (untuk bucket dengan banyak slot)
       if (!picked) {
-        const otherBlock = targetBlock === BLOCK_1 ? BLOCK_2 : BLOCK_1;
-        picked = otherBlock.find((g) => groupSlots[g] < maxPerGroup && !usedSet.has(g));
-      }
-
-      if (!picked) {
-        picked = [...BLOCK_1, ...BLOCK_2]
+        picked = activeGroups
           .filter((g) => groupSlots[g] < maxPerGroup)
-          .reduce((best, g) => best === null || groupSlots[g] < groupSlots[best] ? g : best, null);
+          .sort((a, b) => groupSlots[a] - groupSlots[b])[0];
       }
 
+      // Fallback terakhir: grup dengan slot paling sedikit
       if (!picked) {
-        picked = [...BLOCK_1, ...BLOCK_2].reduce(
-          (best, g) => (groupSlots[g] < groupSlots[best] ? g : best), "A"
+        picked = activeGroups.reduce(
+          (best, g) => (groupSlots[g] < groupSlots[best] ? g : best), activeGroups[0]
         );
       }
 
@@ -2164,6 +2159,10 @@ function getMaxTeamsPerGroup() {
   return getSettings().maxTeamsPerGroup || 4;
 }
 
+function getQualifiedPerGroup() {
+  return getSettings().qualifiedPerGroup || 2;
+}
+
 function applyTournamentName(name) {
   document.title = name + " Admin Dashboard";
 }
@@ -2210,6 +2209,10 @@ async function renderSettingsTab() {
   const maxDisplay = document.getElementById("maxTeamsDisplay");
   if (maxDisplay) maxDisplay.textContent = settings.maxTeamsPerGroup || 4;
 
+  const qualDisplay = document.getElementById("qualifiedDisplay");
+  if (qualDisplay) qualDisplay.textContent = settings.qualifiedPerGroup || 2;
+  updateBracketCalcInfo();
+
   const userDisplay = document.getElementById("currentUserDisplay");
   if (userDisplay) userDisplay.textContent = creds.user;
 
@@ -2234,7 +2237,62 @@ window.changeMaxTeams = function (delta) {
   let val = parseInt(display.textContent) + delta;
   val = Math.max(2, Math.min(8, val));
   display.textContent = val;
+  updateBracketCalcInfo();
 };
+
+window.changeQualifiedTeams = function (delta) {
+  const display = document.getElementById("qualifiedDisplay");
+  if (!display) return;
+  const maxDisplay = document.getElementById("maxTeamsDisplay");
+  const maxPG = parseInt(maxDisplay?.textContent) || 4;
+  let val = parseInt(display.textContent) + delta;
+  val = Math.max(1, Math.min(maxPG, val));
+  display.textContent = val;
+  updateBracketCalcInfo();
+};
+
+function updateBracketCalcInfo() {
+  const infoEl = document.getElementById("bracketCalcInfo");
+  if (!infoEl) return;
+  const maxDisplay = document.getElementById("maxTeamsDisplay");
+  const qualDisplay = document.getElementById("qualifiedDisplay");
+  const maxPG  = parseInt(maxDisplay?.textContent) || 4;
+  const qualPG = parseInt(qualDisplay?.textContent) || 2;
+  const totalQualified = getData().teams.length > 0
+    ? (() => {
+        // hitung dari grup aktif
+        const activeGroups = getActiveGroups().filter(g =>
+          getData().teams.some(t => t.group === g)
+        );
+        return activeGroups.length * qualPG;
+      })()
+    : null;
+
+  const neededGroups = qualPG > 0 ? Math.ceil(16 / qualPG) : "—";
+  const totalPreview = qualPG > 0 ? neededGroups * qualPG : "—";
+  const isExact = totalPreview === 16;
+
+  let infoHtml = `
+    <div class="bracket-calc-row">
+      <span>Butuh grup untuk 16 besar:</span>
+      <strong>${neededGroups} grup</strong>
+    </div>
+    <div class="bracket-calc-row">
+      <span>Total tim lolos:</span>
+      <strong class="${isExact ? "calc-ok" : "calc-warn"}">${totalPreview} tim ${isExact ? "✅" : "⚠️ bukan 16"}</strong>
+    </div>`;
+
+  if (totalQualified !== null) {
+    const isReady = totalQualified === 16;
+    infoHtml += `
+    <div class="bracket-calc-row">
+      <span>Estimasi dari tim saat ini:</span>
+      <strong class="${isReady ? "calc-ok" : "calc-warn"}">${totalQualified} tim lolos ${isReady ? "✅" : "⚠️"}</strong>
+    </div>`;
+  }
+
+  infoEl.innerHTML = infoHtml;
+}
 
 function handleLogoUpload(e) {
   const file = e.target.files[0];
@@ -2278,6 +2336,8 @@ async function saveSettings() {
   }
   const maxDisplay = document.getElementById("maxTeamsDisplay");
   if (maxDisplay) settings.maxTeamsPerGroup = parseInt(maxDisplay.textContent) || 4;
+  const qualDisplay = document.getElementById("qualifiedDisplay");
+  if (qualDisplay) settings.qualifiedPerGroup = parseInt(qualDisplay.textContent) || 2;
   saveSettingsToStorage(settings);
   await saveSettingsAsync(settings);
   applyTournamentName(settings.tournamentName);
@@ -2580,7 +2640,7 @@ async function openGroupAdminModal(id) {
     .filter((a) => a.group && a.id !== id)
     .map((a) => a.group);
 
-  const groupOptions = GROUPS.map((g) => {
+  const groupOptions = getActiveGroups().map((g) => {
     const isUsed = usedGroups.includes(g);
     return `<option value="${g}" ${existingAcc?.group === g ? "selected" : ""} ${isUsed ? "disabled" : ""}>${g}${isUsed ? " (sudah ada admin)" : ""}</option>`;
   }).join("");

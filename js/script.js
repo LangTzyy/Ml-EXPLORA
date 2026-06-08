@@ -5,7 +5,27 @@
 const AUTH_KEY = "mlwc_auth";
 
 /* ─── KONSTANTA ─────────────────────────────────────────────── */
-const GROUPS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+const GROUPS = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P"];
+
+function getActiveGroups() {
+  // Kalau data sudah dimuat, return hanya grup yang punya tim
+  if (_cachedData && _cachedData.teams && _cachedData.teams.length > 0) {
+    const used = new Set(_cachedData.teams.map(t => t.group));
+    return GROUPS.filter(g => used.has(g));
+  }
+  // Fallback sebelum data dimuat: hitung dari settings
+  const settings = getSettings();
+  const maxPG = settings.maxTeamsPerGroup || 4;
+  return GROUPS.slice(0, 8); // default 8 grup
+}
+
+function getSettings() {
+  try {
+    const s = localStorage.getItem("mlwc_settings");
+    if (s) return JSON.parse(s);
+  } catch (e) {}
+  return { tournamentName: "EXPLORA", logoDataUrl: "", maxTeamsPerGroup: 4, qualifiedPerGroup: 2 };
+}
 
 const LOGO_COLORS = [
   "linear-gradient(135deg,#0066ff,#001a4d)",
@@ -62,7 +82,7 @@ function generateInitialData() {
 function generateGroupSchedule(teams) {
   const matches = [];
   let mid = 1;
-  GROUPS.forEach((g) => {
+  getActiveGroups().forEach((g) => {
     const gt = teams.filter((t) => t.group === g);
     for (let i = 0; i < gt.length; i++) {
       for (let j = i + 1; j < gt.length; j++) {
@@ -86,7 +106,7 @@ function generateGroupSchedule(teams) {
    ============================================================ */
 function computeStandings(data) {
   const standings = {};
-  GROUPS.forEach((g) => {
+  getActiveGroups().forEach((g) => {
     const gt = data.teams.filter((t) => t.group === g);
     standings[g] = gt.map((t) => ({ ...t, played:0, win:0, draw:0, lose:0, points:0 }));
   });
@@ -104,7 +124,7 @@ function computeStandings(data) {
     else                           { a.draw++; b.draw++; }
   });
 
-  GROUPS.forEach((g) => {
+  getActiveGroups().forEach((g) => {
     standings[g].sort((x, y) => y.points - x.points || y.win - x.win || x.name.localeCompare(y.name));
   });
   return standings;
@@ -115,18 +135,46 @@ function computeStandings(data) {
    ============================================================ */
 function buildBracketFromStandings(data) {
   const standings = computeStandings(data);
-  const pairDefs = [
-    ["A",1,"B",2], ["C",1,"D",2], ["E",1,"F",2], ["G",1,"H",2],
-    ["B",1,"A",2], ["D",1,"C",2], ["F",1,"E",2], ["H",1,"G",2],
-  ];
-  const r16 = pairDefs.map((p, i) => {
-    const a = standings[p[0]]?.[p[1]-1];
-    const b = standings[p[2]]?.[p[3]-1];
-    return { id:"r16-"+(i+1), teamA:a?.id||null, teamB:b?.id||null, scoreA:0, scoreB:0, winner:null, played:false };
+  const settings  = getSettings();
+  const qualPG    = settings.qualifiedPerGroup || 2;
+
+  // Kumpulkan semua tim lolos: top-N per grup aktif (urut sesuai grup)
+  const activeGroups = getActiveGroups().filter(g =>
+    data.teams.some(t => t.group === g)
+  );
+
+  const qualifiedTeams = []; // [{id, group, seed}]
+  activeGroups.forEach(g => {
+    const rows = standings[g] || [];
+    for (let i = 0; i < qualPG && i < rows.length; i++) {
+      qualifiedTeams.push({ id: rows[i].id, group: g, seed: i + 1 });
+    }
   });
+
+  // Buat 8 matchup R16 dari 16 slot (atau sebanyak yang tersedia, maks 16)
+  const slots = qualifiedTeams.slice(0, 16);
+  // Pairing: seeded bracket — 1 vs 16, 2 vs 15, dst (atau round-robin antar grup kalau cukup grup)
+  // Pakai pola: pasangkan slot[i] vs slot[15-i] untuk i = 0..7
+  const r16 = [];
+  const half = Math.floor(slots.length / 2);
+  for (let i = 0; i < 8; i++) {
+    const a = slots[i]         || null;
+    const b = slots[15 - i]    || null;
+    r16.push({
+      id: "r16-" + (i + 1),
+      teamA: a?.id || null,
+      teamB: b?.id || null,
+      scoreA: 0, scoreB: 0, winner: null, played: false,
+    });
+  }
+
   const mkMatch = (prefix, n) =>
-    Array.from({ length:n }, (_, i) => ({ id:`${prefix}-${i+1}`, teamA:null, teamB:null, scoreA:0, scoreB:0, winner:null, played:false }));
-  return { r16, qf:mkMatch("qf",4), sf:mkMatch("sf",2), bronze:mkMatch("bronze",1), final:mkMatch("final",1) };
+    Array.from({ length: n }, (_, i) => ({
+      id: `${prefix}-${i+1}`, teamA: null, teamB: null,
+      scoreA: 0, scoreB: 0, winner: null, played: false,
+    }));
+
+  return { r16, qf: mkMatch("qf", 4), sf: mkMatch("sf", 2), bronze: mkMatch("bronze", 1), final: mkMatch("final", 1) };
 }
 
 function advanceBracket(data) {
@@ -468,7 +516,7 @@ function populateGroupFilter() {
   ["filterGroup","filterResultGroup"].forEach((selId) => {
     const sel = document.getElementById(selId);
     if (sel && sel.options.length <= 1) {
-      GROUPS.forEach((g) => {
+      getActiveGroups().forEach((g) => {
         const o = document.createElement("option");
         o.value = g; o.textContent = `Grup ${g}`;
         sel.appendChild(o);
@@ -483,9 +531,10 @@ function renderStandings(data) {
   if (!wrap || !data) return;
 
   const standings = computeStandings(data);
+  const qualPG = getSettings().qualifiedPerGroup || 2;
 
   // Hanya tampilkan grup yang memiliki tim
-  const activeGroups = GROUPS.filter(g => data.teams.some(t => t.group === g));
+  const activeGroups = getActiveGroups().filter(g => data.teams.some(t => t.group === g));
 
   if (!activeGroups.length) {
     wrap.innerHTML = emptyState("📋", "Belum ada klasemen", "Klasemen akan muncul setelah admin menginput tim.");
@@ -494,14 +543,14 @@ function renderStandings(data) {
 
   wrap.innerHTML = activeGroups.map((g) => {
     const rows = standings[g].map((t, i) => `
-      <tr class="${i < 2 ? "qualified" : ""}">
+      <tr class="${i < qualPG ? "qualified" : ""}">
         <td class="team-name-cell">
           <span class="team-rank-num">${i + 1}</span>
           <div class="team-name-wrap">
             <span class="team-standing-name">${t.name}</span>
             ${t.tag ? `<span class="standings-tag">${t.tag}</span>` : ''}
           </div>
-          ${i < 2 ? '<span class="qualify-badge">✓ Lolos</span>' : ''}
+          ${i < qualPG ? '<span class="qualify-badge">✓ Lolos</span>' : ''}
         </td>
         <td class="tag-cell"><span class="standings-tag">${t.tag || '-'}</span></td>
         <td>${t.played}</td>
@@ -817,7 +866,7 @@ function renderStats(data) {
   if (top) {
     const all = [];
     const standings = computeStandings(data);
-    GROUPS.forEach((g) => standings[g].forEach((t) => all.push(t)));
+    getActiveGroups().forEach((g) => standings[g].forEach((t) => all.push(t)));
     all.sort((a,b) => b.points-a.points || b.win-a.win);
     top.innerHTML = all.slice(0,10).map((t,i) => `
       <div class="top-row">
