@@ -19,11 +19,12 @@ function getActiveGroups() {
   return GROUPS.slice(0, 8); // default 8 grup
 }
 
+// Settings di-cache setelah load dari Firestore — jangan baca localStorage
+let _cachedSettings = null;
+
 function getSettings() {
-  try {
-    const s = localStorage.getItem("mlwc_settings");
-    if (s) return JSON.parse(s);
-  } catch (e) {}
+  // Kembalikan cache jika sudah ada, fallback ke default
+  if (_cachedSettings) return _cachedSettings;
   return { tournamentName: "EXPLORA", logoDataUrl: "", maxTeamsPerGroup: 4, qualifiedPerGroup: 2 };
 }
 
@@ -63,7 +64,10 @@ function saveData(data) {
 }
 
 async function initData() {
-  _cachedData = await loadDataAsync();
+  [_cachedData, _cachedSettings] = await Promise.all([
+    loadDataAsync(),
+    getSettingsAsync(),
+  ]);
 }
 
 function generateInitialData() {
@@ -281,8 +285,10 @@ async function initPublic() {
   renderAll(data);
   startCountdown(data);
 
-  onDataChange((freshData) => {
+  onDataChange(async (freshData) => {
     _cachedData = freshData;
+    // Refresh settings juga supaya qualifiedPerGroup selalu sinkron
+    _cachedSettings = await getSettingsAsync();
     renderAll(freshData);
     startCountdown(freshData);
   });
@@ -513,16 +519,10 @@ function setupFilters() {
 }
 
 function populateGroupFilter() {
-  ["filterGroup","filterResultGroup"].forEach((selId) => {
-    const sel = document.getElementById(selId);
-    if (sel && sel.options.length <= 1) {
-      getActiveGroups().forEach((g) => {
-        const o = document.createElement("option");
-        o.value = g; o.textContent = `Grup ${g}`;
-        sel.appendChild(o);
-      });
-    }
-  });
+  // index.html hanya punya filter per stage (filterScheduleStage & filterResultStage).
+  // Filter per grup spesifik tidak ada di index.html, jadi fungsi ini
+  // hanya memastikan elemen yang ada sudah ter-render — tidak ada yang perlu ditambahkan.
+  // (Dulu merujuk ke filterGroup & filterResultGroup yang tidak ada → sekarang diperbaiki)
 }
 
 /* ─── STANDINGS ─── */
@@ -532,6 +532,10 @@ function renderStandings(data) {
 
   const standings = computeStandings(data);
   const qualPG = getSettings().qualifiedPerGroup || 2;
+
+  // Update subtitle dinamis
+  const subtitle = document.getElementById("standingsSubtitle");
+  if (subtitle) subtitle.textContent = `${qualPG} tim teratas tiap grup lolos ke 16 Besar.`;
 
   // Hanya tampilkan grup yang memiliki tim
   const activeGroups = getActiveGroups().filter(g => data.teams.some(t => t.group === g));

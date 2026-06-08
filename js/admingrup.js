@@ -6,6 +6,9 @@ const GA_AUTH_KEY = "mlwc_group_admin_auth";
 let _gaSession = null;
 let _unsubscribe = null;
 
+// _cachedData, _cachedSettings, getSettings(), initData(), getData()
+// sudah dideklarasikan di script.js (shared global) — tidak perlu dideklarasikan ulang di sini.
+
 /* ============================================================
    INIT
    ============================================================ */
@@ -125,8 +128,10 @@ async function showGroupShell() {
 
   await initData();
 
-  _unsubscribe = onDataChange((newData) => {
+  _unsubscribe = onDataChange(async (newData) => {
     _cachedData = newData;
+    // Refresh settings supaya qualifiedPerGroup selalu sinkron dengan Firestore
+    _cachedSettings = await getSettingsAsync();
     renderGroupAdmin();
   });
 
@@ -363,11 +368,13 @@ function renderGAStandings() {
     return;
   }
 
+  const qualPG = getSettings().qualifiedPerGroup || 2;
+
   const rowsHtml = rows.map((t, i) => {
-    const isTop2 = i < 2;
+    const isQualified = i < qualPG;
     const rankIcon = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`;
     return `
-      <tr class="${isTop2 ? "ga-standing-qualify" : ""}">
+      <tr class="${isQualified ? "ga-standing-qualify" : ""}">
         <td class="ga-standing-rank">${rankIcon}</td>
         <td class="ga-standing-team">
           <div class="ga-standing-team-inner">
@@ -416,7 +423,7 @@ function renderGAStandings() {
         <tbody>${rowsHtml}</tbody>
       </table>
       <div class="ga-standings-footer">
-        <span>M: Match · W: Win · D: Draw · L: Lose · P: Points</span>
+        <span>★ Top ${qualPG} lolos ke playoff &nbsp;|&nbsp; Win=+1 · Draw=0 · Lose=−1</span>
       </div>
     </div>
   `;
@@ -445,6 +452,7 @@ function buildGAExportContent() {
   const rows = standings[group] || [];
   const played = matches.filter((m) => m.played);
   const now = new Date().toLocaleDateString("id-ID", { dateStyle: "long" });
+  const qualPG = getSettings().qualifiedPerGroup || 2;
 
   let html = `
     <h1 style="text-align:center;font-family:Arial,sans-serif;">EXPLORA 2026 — Grup ${group}</h1>
@@ -468,7 +476,7 @@ function buildGAExportContent() {
       </thead>
       <tbody>
         ${rows.map((t, i) => `
-          <tr style="${i < 2 ? "background:#f0fff4;" : ""}">
+          <tr style="${i < qualPG ? "background:#f0fff4;" : ""}">
             <td style="text-align:center;">${i + 1}</td>
             <td>${t.name} <span style="color:#888;">(${t.tag})</span></td>
             <td style="text-align:center;">${t.played}</td>
@@ -481,7 +489,7 @@ function buildGAExportContent() {
       </tbody>
     </table>
     <p style="font-size:11px;color:#888;font-family:Arial,sans-serif;">
-      ★ Top 2 lolos ke playoff &nbsp;|&nbsp; Win=+1 · Draw=0 · Lose=−1
+      ★ Top ${qualPG} lolos ke playoff &nbsp;|&nbsp; Win=+1 · Draw=0 · Lose=−1
     </p>
     <h2 style="font-family:Arial,sans-serif;margin-top:24px;">Hasil Pertandingan Grup ${group}</h2>
   `;

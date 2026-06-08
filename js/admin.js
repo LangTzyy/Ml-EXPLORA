@@ -2143,16 +2143,17 @@ window.closeModal = function () {
 };
 
 /* ============ SETTINGS ============ */
+// _cachedSettings di-load oleh initData() di script.js — tidak perlu localStorage
 function getSettings() {
-  try {
-    const s = localStorage.getItem("mlwc_settings");
-    if (s) return JSON.parse(s);
-  } catch (e) {}
-  return { tournamentName: "EXPLORA", logoDataUrl: "", maxTeamsPerGroup: 4 };
+  if (typeof _cachedSettings !== "undefined" && _cachedSettings) return _cachedSettings;
+  return { tournamentName: "EXPLORA", logoDataUrl: "", maxTeamsPerGroup: 4, qualifiedPerGroup: 2 };
 }
 
 function saveSettingsToStorage(settings) {
-  localStorage.setItem("mlwc_settings", JSON.stringify(settings));
+  // Tidak lagi tulis ke localStorage — simpan ke Firestore via saveSettingsAsync
+  saveSettingsAsync(settings).catch(e => console.error("[saveSettings]", e));
+  // Update cache langsung supaya UI sync tanpa menunggu Firestore
+  if (typeof _cachedSettings !== "undefined") _cachedSettings = settings;
 }
 
 function getMaxTeamsPerGroup() {
