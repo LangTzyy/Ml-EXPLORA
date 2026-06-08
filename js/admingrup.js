@@ -299,9 +299,9 @@ function renderGAResults() {
         <div class="match-teams">
           <div class="match-team-item"><span class="match-team-name">${tA?.name || "???"}</span></div>
           <div class="score-input-mini">
-            <input type="number" min="0" max="1" value="${m.scoreA ?? ""}" id="sA-${m.id}" placeholder="0"/>
+            <input type="number" min="0" max="1" value="${m.played ? m.scoreA : 0}" id="sA-${m.id}"/>
             <span>:</span>
-            <input type="number" min="0" max="1" value="${m.scoreB ?? ""}" id="sB-${m.id}" placeholder="0"/>
+            <input type="number" min="0" max="1" value="${m.played ? m.scoreB : 0}" id="sB-${m.id}"/>
           </div>
           <div class="match-team-item right"><span class="match-team-name">${tB?.name || "???"}</span></div>
         </div>

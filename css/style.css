@@ -2584,6 +2584,7 @@ select.input {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: #ffffff;
 }
 .team-name-wrap .standings-tag {
   display: inline-block;

@@ -703,9 +703,9 @@ function renderAdminResults() {
         <div class="match-teams">
           <div class="match-team-item"><span class="match-team-name">${a?.name || "???"}</span></div>
           <div class="score-input-mini">
-            <input type="number" min="0" max="1" value="${m.scoreA ?? ""}" id="sA-${m.id}" placeholder="0"/>
+            <input type="number" min="0" max="1" value="${m.played ? m.scoreA : 0}" id="sA-${m.id}"/>
             <span>:</span>
-            <input type="number" min="0" max="1" value="${m.scoreB ?? ""}" id="sB-${m.id}" placeholder="0"/>
+            <input type="number" min="0" max="1" value="${m.played ? m.scoreB : 0}" id="sB-${m.id}"/>
           </div>
           <div class="match-team-item right"><span class="match-team-name">${b?.name || "???"}</span></div>
         </div>
@@ -2145,7 +2145,13 @@ window.closeModal = function () {
 /* ============ SETTINGS ============ */
 // _cachedSettings di-load oleh initData() di script.js — tidak perlu localStorage
 function getSettings() {
-  if (typeof _cachedSettings !== "undefined" && _cachedSettings) return _cachedSettings;
+  if (typeof _cachedSettings !== "undefined" && _cachedSettings) {
+    // Normalisasi field lama "teamsQualifyPerGroup" -> "qualifiedPerGroup"
+    if (_cachedSettings.teamsQualifyPerGroup !== undefined && _cachedSettings.qualifiedPerGroup === undefined) {
+      _cachedSettings.qualifiedPerGroup = _cachedSettings.teamsQualifyPerGroup;
+    }
+    return _cachedSettings;
+  }
   return { tournamentName: "EXPLORA", logoDataUrl: "", maxTeamsPerGroup: 4, qualifiedPerGroup: 2 };
 }
 
@@ -2339,6 +2345,8 @@ async function saveSettings() {
   if (maxDisplay) settings.maxTeamsPerGroup = parseInt(maxDisplay.textContent) || 4;
   const qualDisplay = document.getElementById("qualifiedDisplay");
   if (qualDisplay) settings.qualifiedPerGroup = parseInt(qualDisplay.textContent) || 2;
+  // Hapus field lama agar Firestore bersih
+  delete settings.teamsQualifyPerGroup;
   saveSettingsToStorage(settings);
   await saveSettingsAsync(settings);
   applyTournamentName(settings.tournamentName);

@@ -23,8 +23,13 @@ function getActiveGroups() {
 let _cachedSettings = null;
 
 function getSettings() {
-  // Kembalikan cache jika sudah ada, fallback ke default
-  if (_cachedSettings) return _cachedSettings;
+  if (_cachedSettings) {
+    // Normalisasi field lama "teamsQualifyPerGroup" -> "qualifiedPerGroup"
+    if (_cachedSettings.teamsQualifyPerGroup !== undefined && _cachedSettings.qualifiedPerGroup === undefined) {
+      _cachedSettings.qualifiedPerGroup = _cachedSettings.teamsQualifyPerGroup;
+    }
+    return _cachedSettings;
+  }
   return { tournamentName: "EXPLORA", logoDataUrl: "", maxTeamsPerGroup: 4, qualifiedPerGroup: 2 };
 }
 
@@ -261,6 +266,13 @@ function showLoading(elementId) {
 /* Cek apakah turnamen sudah selesai (ada juara grand final) */
 function isTournamentFinished(data) {
   return !!(data?.bracket?.final?.[0]?.winner);
+}
+
+/* Cek apakah semua pertandingan di grup tertentu sudah selesai */
+function isGroupComplete(group, data) {
+  const groupMatches = data.matches.filter(m => m.group === group);
+  if (!groupMatches.length) return false;
+  return groupMatches.every(m => m.played);
 }
 
 /* ============================================================
@@ -546,15 +558,16 @@ function renderStandings(data) {
   }
 
   wrap.innerHTML = activeGroups.map((g) => {
+    const groupComplete = isGroupComplete(g, data);
     const rows = standings[g].map((t, i) => `
-      <tr class="${i < qualPG ? "qualified" : ""}">
+      <tr class="${(i < qualPG && groupComplete) ? "qualified" : ""}">
         <td class="team-name-cell">
           <span class="team-rank-num">${i + 1}</span>
           <div class="team-name-wrap">
             <span class="team-standing-name">${t.name}</span>
             ${t.tag ? `<span class="standings-tag">${t.tag}</span>` : ''}
           </div>
-          ${i < qualPG ? '<span class="qualify-badge">✓ Lolos</span>' : ''}
+          ${(i < qualPG && groupComplete) ? '<span class="qualify-badge">✓ Lolos</span>' : ''}
         </td>
         <td class="tag-cell"><span class="standings-tag">${t.tag || '-'}</span></td>
         <td>${t.played}</td>

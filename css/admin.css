@@ -1266,6 +1266,38 @@ body {
   color: gold;
 }
 
+/* Badge status lolos/gugur di standings admin */
+.standings-row-qualified {
+  background: rgba(0, 255, 136, 0.05) !important;
+  border-left: 3px solid rgba(0, 255, 136, 0.4);
+}
+.standings-qualify-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 255, 136, 0.12);
+  color: #00ff88;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  white-space: nowrap;
+}
+.standings-elim-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 68, 68, 0.1);
+  color: #ff6666;
+  border: 1px solid rgba(255, 68, 68, 0.25);
+  white-space: nowrap;
+}
+.standings-pending-badge {
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+}
+
 /* ============================================================
    BRACKET — PLAYOFF (HORIZONTAL SCROLL DIIZINKAN)
    ============================================================ */
