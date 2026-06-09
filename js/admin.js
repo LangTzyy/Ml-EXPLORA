@@ -756,10 +756,13 @@ function renderAdminStandings() {
   const filterGroup =
     document.getElementById("standingsFilter")?.value || "all";
   const activeGroups = filterGroup === "all" ? getActiveGroups() : [filterGroup];
+  const qualPG = getSettings().qualifiedPerGroup || 2;
   let html = "";
   activeGroups.forEach((g) => {
     const teams = data.teams.filter((t) => t.group === g);
     if (!teams.length) return;
+
+    const groupComplete = isGroupComplete(g, data);
 
     const rows = teams
       .map((t) => {
@@ -769,7 +772,21 @@ function renderAdminStandings() {
       .sort((a, b) => {
         if (b.points !== a.points) return b.points - a.points;
         if (b.wins !== a.wins) return b.wins - a.wins;
-        return 0;
+        // Head-to-head
+        const h2h = data.matches.find(
+          (m) => m.played && m.group === g &&
+          ((m.teamA === a.id && m.teamB === b.id) ||
+           (m.teamA === b.id && m.teamB === a.id))
+        );
+        if (h2h) {
+          const aWon = (h2h.teamA === a.id && h2h.scoreA > h2h.scoreB) ||
+                       (h2h.teamB === a.id && h2h.scoreB > h2h.scoreA);
+          const bWon = (h2h.teamA === b.id && h2h.scoreA > h2h.scoreB) ||
+                       (h2h.teamB === b.id && h2h.scoreB > h2h.scoreA);
+          if (aWon && !bWon) return -1;
+          if (bWon && !aWon) return 1;
+        }
+        return a.name.localeCompare(b.name);
       });
 
     html += `
@@ -777,6 +794,7 @@ function renderAdminStandings() {
         <div class="standings-group-header">
           <div style="display:flex;align-items:center;gap:10px;">
             <span class="standings-group-badge">Grup ${g}</span>
+            ${groupComplete ? '<span class="standings-group-complete-badge">✅ Selesai</span>' : ''}
           </div>
           <div style="display:flex;align-items:center;gap:10px;">
             <span class="standings-group-info">
@@ -798,6 +816,7 @@ function renderAdminStandings() {
             <col style="width:36px">
             <col style="width:36px">
             <col style="width:52px">
+            ${groupComplete ? '<col style="width:80px">' : ''}
           </colgroup>
           <thead>
             <tr>
@@ -805,13 +824,16 @@ function renderAdminStandings() {
               <th style="text-align:left">Tim</th>
               <th>M</th><th>W</th><th>D</th><th>L</th>
               <th>Poin</th>
+              ${groupComplete ? '<th>Status</th>' : ''}
             </tr>
           </thead>
           <tbody>
             ${rows
               .map(
-                (t, i) => `
-              <tr class="${i === 0 ? "standings-row-top" : ""}">
+                (t, i) => {
+                  const isQualified = groupComplete && i < qualPG;
+                  return `
+              <tr class="${isQualified ? "standings-row-qualify" : i === 0 ? "standings-row-top" : ""}">
                 <td class="standings-rank">${i + 1}</td>
                 <td class="standings-team-cell">
                   <div class="standings-team-name">${t.name}</div>
@@ -822,8 +844,10 @@ function renderAdminStandings() {
                 <td>${t.draws}</td>
                 <td class="standings-losses">${t.losses}</td>
                 <td class="standings-points">${t.points}</td>
+                ${groupComplete ? `<td>${isQualified ? '<span class="qualify-badge">✓ Lolos</span>' : ''}</td>` : ''}
               </tr>
-            `,
+            `;
+                }
               )
               .join("")}
           </tbody>
@@ -1747,7 +1771,22 @@ function generateExportHTML(data, mode = "pdf") {
       const sa = getTeamStats(a.id, data);
       const sb = getTeamStats(b.id, data);
       if (sb.points !== sa.points) return sb.points - sa.points;
-      return sb.wins - sa.wins;
+      if (sb.wins !== sa.wins) return sb.wins - sa.wins;
+      // Head-to-head
+      const h2h = data.matches.find(
+        (m) => m.played && m.group === g &&
+        ((m.teamA === a.id && m.teamB === b.id) ||
+         (m.teamA === b.id && m.teamB === a.id))
+      );
+      if (h2h) {
+        const aWon = (h2h.teamA === a.id && h2h.scoreA > h2h.scoreB) ||
+                     (h2h.teamB === a.id && h2h.scoreB > h2h.scoreA);
+        const bWon = (h2h.teamA === b.id && h2h.scoreA > h2h.scoreB) ||
+                     (h2h.teamB === b.id && h2h.scoreB > h2h.scoreA);
+        if (aWon && !bWon) return -1;
+        if (bWon && !aWon) return 1;
+      }
+      return a.name.localeCompare(b.name);
     });
   });
 

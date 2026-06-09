@@ -134,7 +134,25 @@ function computeStandings(data) {
   });
 
   getActiveGroups().forEach((g) => {
-    standings[g].sort((x, y) => y.points - x.points || y.win - x.win || x.name.localeCompare(y.name));
+    standings[g].sort((x, y) => {
+      if (y.points !== x.points) return y.points - x.points;
+      if (y.win !== x.win) return y.win - x.win;
+      // Head-to-head: cari pertandingan langsung antara x dan y
+      const h2h = data.matches.find(
+        (m) => m.played && m.group === g &&
+        ((m.teamA === x.id && m.teamB === y.id) ||
+         (m.teamA === y.id && m.teamB === x.id))
+      );
+      if (h2h) {
+        const xWon = (h2h.teamA === x.id && h2h.scoreA > h2h.scoreB) ||
+                     (h2h.teamB === x.id && h2h.scoreB > h2h.scoreA);
+        const yWon = (h2h.teamA === y.id && h2h.scoreA > h2h.scoreB) ||
+                     (h2h.teamB === y.id && h2h.scoreB > h2h.scoreA);
+        if (xWon && !yWon) return -1;
+        if (yWon && !xWon) return 1;
+      }
+      return x.name.localeCompare(y.name);
+    });
   });
   return standings;
 }

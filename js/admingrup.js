@@ -369,35 +369,13 @@ function renderGAStandings() {
   }
 
   const qualPG = getSettings().qualifiedPerGroup || 2;
-
-  const rowsHtml = rows.map((t, i) => {
-    const isQualified = i < qualPG;
-    const rankIcon = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`;
-    return `
-      <tr class="${isQualified ? "ga-standing-qualify" : ""}">
-        <td class="ga-standing-rank">${rankIcon}</td>
-        <td class="ga-standing-team">
-          <div class="ga-standing-team-inner">
-            <div class="ga-team-logo" style="background:${t.logoColor || "var(--gradient-blue)"}">⚔</div>
-            <div>
-              <div class="ga-team-fullname">${t.name}</div>
-              <div class="ga-team-shorttag">${t.tag}</div>
-            </div>
-          </div>
-        </td>
-        <td class="ga-standing-num">${t.played}</td>
-        <td class="ga-standing-win">${t.win}</td>
-        <td class="ga-standing-draw">${t.draw}</td>
-        <td class="ga-standing-lose">${t.lose}</td>
-        <td class="ga-standing-pts">${t.points > 0 ? "+" : ""}${t.points}</td>
-      </tr>
-    `;
-  }).join("");
+  const groupComplete = isGroupComplete(group, data);
 
   wrap.innerHTML = `
     <div class="ga-standings-wrap">
       <div class="ga-standings-header">
         <span>Klasemen Grup ${group}</span>
+        ${groupComplete ? '<span class="ga-group-complete-badge">✅ Selesai</span>' : ''}
       </div>
       <table class="ga-standings-table">
         <colgroup>
@@ -408,6 +386,7 @@ function renderGAStandings() {
           <col style="width:68px;">
           <col style="width:68px;">
           <col style="width:76px;">
+          ${groupComplete ? '<col style="width:80px;">' : ''}
         </colgroup>
         <thead>
           <tr>
@@ -418,9 +397,35 @@ function renderGAStandings() {
             <th class="ga-th-center">Draw</th>
             <th class="ga-th-center">Lose</th>
             <th class="ga-th-center">Points</th>
+            ${groupComplete ? '<th class="ga-th-center">Status</th>' : ''}
           </tr>
         </thead>
-        <tbody>${rowsHtml}</tbody>
+        <tbody>
+          ${rows.map((t, i) => {
+            const isQualified = groupComplete && i < qualPG;
+            const rankIcon = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`;
+            return `
+              <tr class="${isQualified ? "ga-standing-qualify" : ""}">
+                <td class="ga-standing-rank">${rankIcon}</td>
+                <td class="ga-standing-team">
+                  <div class="ga-standing-team-inner">
+                    <div class="ga-team-logo" style="background:${t.logoColor || "var(--gradient-blue)"}">⚔</div>
+                    <div>
+                      <div class="ga-team-fullname">${t.name}</div>
+                      <div class="ga-team-shorttag">${t.tag}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="ga-standing-num">${t.played}</td>
+                <td class="ga-standing-win">${t.win}</td>
+                <td class="ga-standing-draw">${t.draw}</td>
+                <td class="ga-standing-lose">${t.lose}</td>
+                <td class="ga-standing-pts">${t.points > 0 ? "+" : ""}${t.points}</td>
+                ${groupComplete ? `<td class="ga-th-center">${isQualified ? '<span class="ga-qualify-badge">✓ Lolos</span>' : ''}</td>` : ''}
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
       </table>
       <div class="ga-standings-footer">
         <span>★ Top ${qualPG} lolos ke playoff &nbsp;|&nbsp; Win=+1 · Draw=0 · Lose=−1</span>
