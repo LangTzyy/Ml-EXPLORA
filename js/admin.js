@@ -1178,15 +1178,23 @@ function openMatchupEditModal(matchId) {
     return;
   }
 
+  // Deteksi ronde match ini (r16 / qf / sf / bronze / final)
+  const rounds = ["r16", "qf", "sf", "bronze", "final"];
+  const currentRound = rounds.find((r) =>
+    (data.bracket?.[r] || []).some((x) => x.id === matchId)
+  ) || null;
+
+  // Ambil tim HANYA dari ronde yang sama
+  const roundMatches = currentRound ? (data.bracket[currentRound] || []) : all;
   const bracketTeamIds = new Set();
-  all.forEach((match) => {
+  roundMatches.forEach((match) => {
     if (match.teamA) bracketTeamIds.add(match.teamA);
     if (match.teamB) bracketTeamIds.add(match.teamB);
   });
 
-  // Tim yang sudah terlibat di match yang sudah played → tidak bisa dipilih
+  // Tim yang sudah terlibat di match played DI RONDE YANG SAMA → tidak bisa dipilih
   const playedTeamIds = new Set();
-  all.forEach((match) => {
+  roundMatches.forEach((match) => {
     if (match.played && match.id !== matchId) {
       if (match.teamA) playedTeamIds.add(match.teamA);
       if (match.teamB) playedTeamIds.add(match.teamB);
@@ -1310,9 +1318,16 @@ window.doEditMatchup = function (matchId) {
   const oldA = m.teamA;
   const oldB = m.teamB;
 
-  // Jika Tim A diganti, tukar posisi tim lama ke match asal tim baru
+  // Deteksi ronde match ini — donor hanya dicari di ronde yang sama
+  const rounds = ["r16", "qf", "sf", "bronze", "final"];
+  const currentRound = rounds.find((r) =>
+    (data.bracket?.[r] || []).some((x) => x.id === matchId)
+  ) || null;
+  const roundMatches = currentRound ? (data.bracket[currentRound] || []) : all;
+
+  // Jika Tim A diganti, tukar posisi tim lama ke match asal tim baru (di ronde yang sama)
   if (newA !== oldA) {
-    const donorMatch = all.find((x) => x.id !== matchId && (x.teamA === newA || x.teamB === newA));
+    const donorMatch = roundMatches.find((x) => x.id !== matchId && (x.teamA === newA || x.teamB === newA));
     if (donorMatch) {
       if (donorMatch.teamA === newA) donorMatch.teamA = oldA;
       else donorMatch.teamB = oldA;
@@ -1325,7 +1340,7 @@ window.doEditMatchup = function (matchId) {
   }
 
   if (newB !== oldB) {
-    const donorMatch = all.find((x) => x.id !== matchId && (x.teamA === newB || x.teamB === newB));
+    const donorMatch = roundMatches.find((x) => x.id !== matchId && (x.teamA === newB || x.teamB === newB));
     if (donorMatch) {
       if (donorMatch.teamA === newB) donorMatch.teamA = oldB;
       else donorMatch.teamB = oldB;
