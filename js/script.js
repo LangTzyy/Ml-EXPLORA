@@ -117,7 +117,7 @@ function computeStandings(data) {
   const standings = {};
   getActiveGroups().forEach((g) => {
     const gt = data.teams.filter((t) => t.group === g);
-    standings[g] = gt.map((t) => ({ ...t, played:0, win:0, draw:0, lose:0, points:0 }));
+    standings[g] = gt.map((t) => ({ ...t, played:0, win:0, lose:0, points:0 }));
   });
 
   data.matches.forEach((m) => {
@@ -130,7 +130,6 @@ function computeStandings(data) {
     a.played++; b.played++;
     if (m.scoreA > m.scoreB)      { a.win++; b.lose++; a.points += 1; b.points -= 1; }
     else if (m.scoreA < m.scoreB) { b.win++; a.lose++; b.points += 1; a.points -= 1; }
-    else                           { a.draw++; b.draw++; }
   });
 
   getActiveGroups().forEach((g) => {
@@ -590,7 +589,6 @@ function renderStandings(data) {
         <td class="tag-cell"><span class="standings-tag">${t.tag || '-'}</span></td>
         <td>${t.played}</td>
         <td class="col-win">${t.win}</td>
-        <td>${t.draw}</td>
         <td class="col-lose">${t.lose}</td>
         <td><b class="${t.points > 0 ? 'pts-pos' : t.points < 0 ? 'pts-neg' : ''}">${t.points > 0 ? '+' : ''}${t.points}</b></td>
       </tr>`).join("");
@@ -605,7 +603,6 @@ function renderStandings(data) {
               <th class="tag-col-header" title="Tag Tim">Tag</th>
               <th title="Match Dimainkan">M</th>
               <th title="Menang" class="col-win">W</th>
-              <th title="Seri">D</th>
               <th title="Kalah" class="col-lose">L</th>
               <th title="Poin">Pts</th>
             </tr>
@@ -615,12 +612,10 @@ function renderStandings(data) {
         <div class="standings-legend">
           <span>M: Match</span>
           <span>W: Win</span>
-          <span>D: Draw/Seri</span>
           <span>L: Lose</span>
           <span>PTS: Points</span>
           <span class="legend-sep">•</span>
           <span class="pts-pos">Win +1</span>
-          <span>Draw 0</span>
           <span class="pts-neg">Lose −1</span>
         </div>
       </div>`;

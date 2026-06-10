@@ -14,9 +14,12 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function initAdmin() {
-  if (sessionStorage.getItem(AUTH_KEY) === "1") {
-    await showShell();
-  }
+  // Cek Firebase Auth state dulu (tidak bisa dipalsukan via DevTools)
+  onAdminAuthChange(async (user) => {
+    if (user && sessionStorage.getItem(AUTH_KEY) === "1") {
+      await showShell();
+    }
+  });
 
   document.getElementById("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -32,7 +35,8 @@ async function initAdmin() {
     }
   });
 
-  document.getElementById("logoutBtn").addEventListener("click", () => {
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+    await signOutAdmin();
     sessionStorage.removeItem(AUTH_KEY);
     location.reload();
   });
@@ -814,7 +818,6 @@ function renderAdminStandings() {
             <col style="width:36px">
             <col style="width:36px">
             <col style="width:36px">
-            <col style="width:36px">
             <col style="width:52px">
             ${groupComplete ? '<col style="width:80px">' : ''}
           </colgroup>
@@ -822,7 +825,7 @@ function renderAdminStandings() {
             <tr>
               <th>#</th>
               <th style="text-align:left">Tim</th>
-              <th>M</th><th>W</th><th>D</th><th>L</th>
+              <th>M</th><th>W</th><th>L</th>
               <th>Poin</th>
               ${groupComplete ? '<th>Status</th>' : ''}
             </tr>
@@ -841,7 +844,6 @@ function renderAdminStandings() {
                 </td>
                 <td>${t.played}</td>
                 <td class="standings-wins">${t.wins}</td>
-                <td>${t.draws}</td>
                 <td class="standings-losses">${t.losses}</td>
                 <td class="standings-points">${t.points}</td>
                 ${groupComplete ? `<td>${isQualified ? '<span class="qualify-badge">✓ Lolos</span>' : ''}</td>` : ''}
@@ -1650,7 +1652,7 @@ function simulateAll() {
 
 /* ============ STATS HELPER ============ */
 function getTeamStats(teamId, data) {
-  let wins = 0, draws = 0, losses = 0, points = 0, played = 0;
+  let wins = 0, losses = 0, points = 0, played = 0;
   data.matches.forEach((match) => {
     if (match.played && (match.teamA === teamId || match.teamB === teamId)) {
       played++;
@@ -1660,15 +1662,13 @@ function getTeamStats(teamId, data) {
       if (ts > os) {
         wins++;
         points += 1;
-      } else if (ts === os) {
-        draws++;
       } else {
         losses++;
         points -= 1;
       }
     }
   });
-  return { wins, draws, losses, points, played };
+  return { wins, losses, points, played };
 }
 
 /* ============ EXPORT ============ */
@@ -1824,20 +1824,20 @@ function generateExportHTML(data, mode = "pdf") {
 
   html += `<div class="${mode === "pdf" ? "page-break" : ""}"></div>`;
   html += `<h2>📊 KLASEMEN GRUP</h2>
-    <p class="section-note">Sistem Poin: Menang = +1 &nbsp;|&nbsp; Seri = 0 &nbsp;|&nbsp; Kalah = -1.</p>`;
+    <p class="section-note">Sistem Poin: Menang = +1 &nbsp;|&nbsp; Kalah = -1.</p>`;
 
   for (const g of getActiveGroups()) {
     if (!groups[g].length) continue;
     const isBlock1 = ["A", "B", "C", "D"].includes(g);
     html += `<h3>Grup ${g} &nbsp;<small style="font-weight:normal;font-size:9pt;color:#888;">${isBlock1 ? "(Blok 1)" : "(Blok 2)"}</small></h3>
       <table class="standings-table">
-        <thead><tr><th>#</th><th>Tim</th><th>Tag</th><th>M</th><th>W</th><th>D</th><th>L</th><th>Poin</th></tr></thead>
+        <thead><tr><th>#</th><th>Tim</th><th>Tag</th><th>M</th><th>W</th><th>L</th><th>Poin</th></tr></thead>
         <tbody>`;
     groups[g].forEach((t, i) => {
       const s = getTeamStats(t.id, data);
       html += `<tr class="${i === 0 ? "rank-1" : ""}">
         <td>${i + 1}</td><td>${t.name}</td><td><code>${t.tag}</code></td>
-        <td>${s.played}</td><td>${s.wins}</td><td>${s.draws}</td><td>${s.losses}</td>
+        <td>${s.played}</td><td>${s.wins}</td><td>${s.losses}</td>
         <td><b>${s.points}</b></td>
       </tr>`;
     });
@@ -2238,7 +2238,8 @@ function applyLogo(dataUrl) {
 
 async function initSettingsOnLoad() {
   const settings = await getSettingsAsync();
-  saveSettingsToStorage(settings);
+  // Hanya update cache dan UI — jangan write ke Firestore sebelum login
+  if (typeof _cachedSettings !== "undefined") _cachedSettings = settings;
   applyTournamentName(settings.tournamentName);
   if (settings.logoDataUrl) applyLogo(settings.logoDataUrl);
 }

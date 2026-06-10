@@ -5,6 +5,8 @@
 const GA_AUTH_KEY = "mlwc_group_admin_auth";
 let _gaSession = null;
 let _unsubscribe = null;
+let _loginAttempts = 0;
+let _loginLockUntil = 0;
 
 // _cachedData, _cachedSettings, getSettings(), initData(), getData()
 // sudah dideklarasikan di script.js (shared global) — tidak perlu dideklarasikan ulang di sini.
@@ -21,8 +23,18 @@ async function initGroupAdmin() {
   const stored = sessionStorage.getItem(GA_AUTH_KEY);
   if (stored) {
     try {
-      _gaSession = JSON.parse(stored);
-      await showGroupShell();
+      const storedSession = JSON.parse(stored);
+      // Verifikasi ulang ke Firestore — jangan langsung percaya sessionStorage
+      const accounts = await getGroupAdminsAsync();
+      const valid = accounts.find(
+        (a) => a.id === storedSession.id && a.role === storedSession.role
+      );
+      if (valid) {
+        _gaSession = valid;
+        await showGroupShell();
+      } else {
+        sessionStorage.removeItem(GA_AUTH_KEY);
+      }
     } catch (e) {
       sessionStorage.removeItem(GA_AUTH_KEY);
     }
@@ -39,18 +51,37 @@ async function initGroupAdmin() {
     btn.querySelector("span").textContent = "Memverifikasi...";
     errEl.classList.add("hidden");
 
+    // Brute force protection
+    if (Date.now() < _loginLockUntil) {
+      const sisaDetik = Math.ceil((_loginLockUntil - Date.now()) / 1000);
+      errEl.textContent = `⏳ Terlalu banyak percobaan. Tunggu ${sisaDetik} detik.`;
+      errEl.classList.remove("hidden");
+      btn.disabled = false;
+      btn.querySelector("span").textContent = "Sign In";
+      return;
+    }
+
     try {
       const account = await verifyGroupAdminLogin(u, p);
       if (account && account.role === "group_admin") {
+        _loginAttempts = 0;
         _gaSession = account;
-        sessionStorage.setItem(GA_AUTH_KEY, JSON.stringify(account));
+        // Simpan hanya id dan role — bukan seluruh objek akun
+        sessionStorage.setItem(GA_AUTH_KEY, JSON.stringify({ id: account.id, role: account.role }));
         await showGroupShell();
         toast("Login berhasil. Selamat datang, " + account.username + "!", "success");
       } else if (account && account.role === "super_admin") {
         errEl.textContent = "⚠️ Gunakan halaman admin.html untuk Super Admin.";
         errEl.classList.remove("hidden");
       } else {
-        errEl.textContent = "❌ Username atau password salah.";
+        _loginAttempts++;
+        if (_loginAttempts >= 3) {
+          _loginLockUntil = Date.now() + 30000; // lock 30 detik
+          _loginAttempts = 0;
+          errEl.textContent = "⏳ Terlalu banyak percobaan. Tunggu 30 detik.";
+        } else {
+          errEl.textContent = "❌ Username atau password salah.";
+        }
         errEl.classList.remove("hidden");
       }
     } catch (err) {
@@ -384,7 +415,6 @@ function renderGAStandings() {
           <col style="width:68px;">
           <col style="width:68px;">
           <col style="width:68px;">
-          <col style="width:68px;">
           <col style="width:76px;">
           ${groupComplete ? '<col style="width:80px;">' : ''}
         </colgroup>
@@ -394,7 +424,6 @@ function renderGAStandings() {
             <th class="ga-th-left">Nama Tim</th>
             <th class="ga-th-center">Match</th>
             <th class="ga-th-center">Win</th>
-            <th class="ga-th-center">Draw</th>
             <th class="ga-th-center">Lose</th>
             <th class="ga-th-center">Points</th>
             ${groupComplete ? '<th class="ga-th-center">Status</th>' : ''}
@@ -418,7 +447,6 @@ function renderGAStandings() {
                 </td>
                 <td class="ga-standing-num">${t.played}</td>
                 <td class="ga-standing-win">${t.win}</td>
-                <td class="ga-standing-draw">${t.draw}</td>
                 <td class="ga-standing-lose">${t.lose}</td>
                 <td class="ga-standing-pts">${t.points > 0 ? "+" : ""}${t.points}</td>
                 ${groupComplete ? `<td class="ga-th-center">${isQualified ? '<span class="ga-qualify-badge">✓ Lolos</span>' : ''}</td>` : ''}
@@ -428,7 +456,7 @@ function renderGAStandings() {
         </tbody>
       </table>
       <div class="ga-standings-footer">
-        <span>★ Top ${qualPG} lolos ke playoff &nbsp;|&nbsp; Win=+1 · Draw=0 · Lose=−1</span>
+        <span>★ Top ${qualPG} lolos ke playoff &nbsp;|&nbsp; Win=+1 · Lose=−1</span>
       </div>
     </div>
   `;
@@ -474,7 +502,6 @@ function buildGAExportContent() {
           <th style="text-align:left;">Tim</th>
           <th style="text-align:center;width:50px;">Main</th>
           <th style="text-align:center;width:50px;">Menang</th>
-          <th style="text-align:center;width:50px;">Draw</th>
           <th style="text-align:center;width:50px;">Kalah</th>
           <th style="text-align:center;width:60px;">Points</th>
         </tr>
@@ -486,7 +513,6 @@ function buildGAExportContent() {
             <td>${t.name} <span style="color:#888;">(${t.tag})</span></td>
             <td style="text-align:center;">${t.played}</td>
             <td style="text-align:center;color:green;">${t.win}</td>
-            <td style="text-align:center;">${t.draw}</td>
             <td style="text-align:center;color:red;">${t.lose}</td>
             <td style="text-align:center;font-weight:bold;">${t.points > 0 ? "+" : ""}${t.points}</td>
           </tr>
@@ -494,7 +520,7 @@ function buildGAExportContent() {
       </tbody>
     </table>
     <p style="font-size:11px;color:#888;font-family:Arial,sans-serif;">
-      ★ Top ${qualPG} lolos ke playoff &nbsp;|&nbsp; Win=+1 · Draw=0 · Lose=−1
+      ★ Top ${qualPG} lolos ke playoff &nbsp;|&nbsp; Win=+1 · Lose=−1
     </p>
     <h2 style="font-family:Arial,sans-serif;margin-top:24px;">Hasil Pertandingan Grup ${group}</h2>
   `;

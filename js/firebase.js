@@ -41,13 +41,14 @@ if (typeof firebase === "undefined") {
   );
 }
 
-let _app, _db;
+let _app, _db, _auth;
 
 try {
   _app = firebase.apps.length
     ? firebase.app()
     : firebase.initializeApp(firebaseConfig);
   _db = firebase.firestore();
+  _auth = firebase.auth();
 } catch (e) {
   console.error("[Firebase] Gagal inisialisasi:", e);
 }
@@ -55,6 +56,11 @@ try {
 // Helper akses db dari file lain
 function getDB() {
   return _db;
+}
+
+// Helper akses auth dari file lain
+function getAuth() {
+  return _auth;
 }
 
 // ─── 3. KONSTANTA DOKUMEN FIRESTORE ─────────────────────────
@@ -180,7 +186,30 @@ async function saveAdminCredentialsAsync(user, plainPass) {
 async function verifyAdminLogin(inputUser, inputPass) {
   const creds = await getAdminCredentialsAsync();
   const inputHash = await sha256(inputPass);
-  return inputUser === creds.user && inputHash === creds.passHash;
+  const usernameMatch = inputUser === creds.user && inputHash === creds.passHash;
+  if (!usernameMatch) return false;
+  // Login ke Firebase Auth jika ada email terdaftar
+  if (creds.email) {
+    try {
+      const result = await _auth.signInWithEmailAndPassword(creds.email, inputPass);
+      console.log("[Auth] Login berhasil:", result.user.email);
+    } catch (e) {
+      console.error("[Auth] Firebase Auth login gagal:", e.code, e.message);
+    }
+  }
+  return true;
+}
+
+async function signOutAdmin() {
+  try {
+    await _auth.signOut();
+  } catch (e) {
+    console.warn("[Auth] signOut error:", e.message);
+  }
+}
+
+function onAdminAuthChange(callback) {
+  return _auth.onAuthStateChanged(callback);
 }
 
 
@@ -251,16 +280,6 @@ async function verifyGroupAdminLogin(inputUser, inputPass) {
 }
 
 // ─── 8. REAL-TIME LISTENER ──────────────────────────────────
-/**
- * Pasang listener real-time pada dokumen "main".
- * Berguna untuk public view agar auto-update tanpa refresh.
- *
- * Contoh penggunaan:
- *   const unsubscribe = onDataChange((data) => {
- *     renderAll(data);
- *   });
- *   // Untuk berhenti listen: unsubscribe();
- */
 function onDataChange(callback) {
   return _db
     .collection(FS_COL)
@@ -278,15 +297,6 @@ function onDataChange(callback) {
 }
 
 // ─── 9. MIGRATION HELPER ────────────────────────────────────
-/**
- * Jika kamu punya data lama di localStorage, jalankan fungsi ini
- * SEKALI dari console browser untuk migrasi ke Firestore:
- *
- *   await migrateFromLocalStorage();
- *
- * Fungsi ini akan otomatis hilang setelah migrasi selesai
- * (cukup hapus blok ini dari kode).
- */
 async function migrateFromLocalStorage() {
   console.log("[Migration] Mulai migrasi dari localStorage ke Firestore...");
 
@@ -333,38 +343,3 @@ async function migrateFromLocalStorage() {
   console.log("  localStorage.removeItem('mlwc_settings')");
   console.log("  localStorage.removeItem('mlwc_admin_credentials')");
 }
-
-
-/* ============================================================
-   FIRESTORE SECURITY RULES
-   Salin rules ini ke Firebase Console → Firestore → Rules
-
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-
-       // Data turnamen (teams, matches, bracket, timeline) — siapa pun bisa baca
-       match /tournament/main {
-         allow read: if true;
-         allow write: if false; // hanya dari backend / admin terautentikasi
-       }
-
-       // Settings — siapa pun bisa baca
-       match /tournament/settings {
-         allow read: if true;
-         allow write: if false;
-       }
-
-       // Credentials — TIDAK BOLEH dibaca publik sama sekali
-       match /tournament/credentials {
-         allow read, write: if false;
-       }
-     }
-   }
-
-   CATATAN:
-   - Untuk versi produksi, gunakan Firebase Authentication agar
-     hanya admin yang login yang bisa write.
-   - Selama development, kamu bisa set allow write: if true
-     tapi JANGAN di-deploy ke production.
-   ============================================================ */
