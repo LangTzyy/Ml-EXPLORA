@@ -484,16 +484,65 @@ function buildGAExportContent() {
   const standings = computeStandings(data);
   const rows = standings[group] || [];
   const played = matches.filter((m) => m.played);
+  const unplayed = matches.filter((m) => !m.played);
   const now = new Date().toLocaleDateString("id-ID", { dateStyle: "long" });
   const qualPG = getSettings().qualifiedPerGroup || 2;
 
+  // ── Jadwal lengkap (semua match, termasuk belum dimainkan) ──
+  let scheduleHtml = `
+    <h2 style="font-family:Arial,sans-serif;margin-top:24px;">Jadwal Pertandingan Grup ${group}</h2>
+    <table border="1" cellpadding="8" cellspacing="0"
+      style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px;">
+      <thead style="background:#e8f0fe;">
+        <tr>
+          <th style="text-align:center;width:40px;">No</th>
+          <th style="text-align:left;">First Pick (Kiri)</th>
+          <th style="text-align:center;width:80px;">VS</th>
+          <th style="text-align:left;">Second Pick (Kanan)</th>
+          <th style="text-align:center;width:80px;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${matches.map((m, i) => {
+          const tA = teamById(m.teamA, data);
+          const tB = teamById(m.teamB, data);
+          const statusStyle = m.played
+            ? "color:green;font-weight:bold;"
+            : "color:#888;";
+          const statusText = m.played
+            ? `✓ ${m.scoreA} – ${m.scoreB}`
+            : "⏳ Belum";
+          const winner = m.played
+            ? (m.scoreA > m.scoreB ? "A" : "B")
+            : null;
+          return `
+            <tr style="${m.played ? "background:#f9fff9;" : ""}">
+              <td style="text-align:center;">${i + 1}</td>
+              <td style="${winner === "A" ? "font-weight:bold;" : ""}">${tA?.name || "?"} <span style="color:#888;">(${tA?.tag || "?"})</span></td>
+              <td style="text-align:center;color:#555;">vs</td>
+              <td style="${winner === "B" ? "font-weight:bold;" : ""}">${tB?.name || "?"} <span style="color:#888;">(${tB?.tag || "?"})</span></td>
+              <td style="text-align:center;${statusStyle}">${statusText}</td>
+            </tr>
+          `;
+        }).join("")}
+      </tbody>
+    </table>
+    <p style="font-size:11px;color:#888;font-family:Arial,sans-serif;margin-top:4px;">
+      Total ${matches.length} pertandingan &nbsp;|&nbsp;
+      ✓ ${played.length} selesai &nbsp;·&nbsp;
+      ⏳ ${unplayed.length} belum dimainkan
+    </p>
+  `;
+
+  // ── Klasemen ──────────────────────────────────────────────
   let html = `
     <h1 style="text-align:center;font-family:Arial,sans-serif;">EXPLORA 2026 — Grup ${group}</h1>
     <p style="text-align:center;font-family:Arial,sans-serif;color:#666;">
       Admin: <strong>${_gaSession?.username || ""}</strong> &nbsp;|&nbsp; Dicetak: ${now}
     </p>
     <hr style="margin:16px 0;"/>
-    <h2 style="font-family:Arial,sans-serif;">Klasemen Grup ${group}</h2>
+    ${scheduleHtml}
+    <h2 style="font-family:Arial,sans-serif;margin-top:24px;">Klasemen Grup ${group}</h2>
     <table border="1" cellpadding="8" cellspacing="0"
       style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px;">
       <thead style="background:#e8f0fe;">
@@ -533,9 +582,9 @@ function buildGAExportContent() {
         style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px;">
         <thead style="background:#e8f0fe;">
           <tr>
-            <th style="text-align:left;">Tim A</th>
+            <th style="text-align:left;">Tim A (First Pick)</th>
             <th style="text-align:center;width:80px;">Skor</th>
-            <th style="text-align:left;">Tim B</th>
+            <th style="text-align:left;">Tim B (Second Pick)</th>
           </tr>
         </thead>
         <tbody>

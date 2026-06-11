@@ -86,28 +86,114 @@ function generateInitialData() {
 }
 
 /* ============================================================
-   JADWAL ROUND-ROBIN
+   JADWAL ROUND-ROBIN — dengan random urutan & random first pick
    ============================================================ */
+
+/** Fisher-Yates shuffle — acak array di tempat */
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Generate jadwal round-robin per grup dengan 2 aturan random:
+ *  1. Urutan pertandingan diacak — tim yang sama tidak main berturutan
+ *  2. Posisi first pick (teamA / sisi kiri) diacak secara seimbang per tim
+ */
 function generateGroupSchedule(teams) {
-  const matches = [];
+  const allMatches = [];
   let mid = 1;
+
   getActiveGroups().forEach((g) => {
     const gt = teams.filter((t) => t.group === g);
+    if (gt.length < 2) return;
+
+    // ── 1. Buat semua pasangan (belum peduli urutan) ──────────
+    const pairs = [];
     for (let i = 0; i < gt.length; i++) {
       for (let j = i + 1; j < gt.length; j++) {
-        matches.push({
-          id:     "m" + mid++,
-          group:  g,
-          teamA:  gt[i].id,
-          teamB:  gt[j].id,
-          scoreA: 0,
-          scoreB: 0,
-          played: false,
-        });
+        pairs.push([gt[i].id, gt[j].id]);
       }
     }
+
+    // ── 2. Acak posisi first pick secara seimbang per tim ─────
+    //    Hitung berapa kali tiap tim sudah jadi "sisi kiri" (teamA)
+    const leftCount = {};
+    gt.forEach((t) => (leftCount[t.id] = 0));
+
+    const orderedPairs = pairs.map(([a, b]) => {
+      // Pilih siapa yang jadi teamA berdasarkan siapa lebih jarang di kiri
+      // Jika sama, random 50/50
+      let teamA, teamB;
+      if (leftCount[a] < leftCount[b]) {
+        teamA = a; teamB = b;
+      } else if (leftCount[b] < leftCount[a]) {
+        teamA = b; teamB = a;
+      } else {
+        // Sama — random
+        if (Math.random() < 0.5) { teamA = a; teamB = b; }
+        else                      { teamA = b; teamB = a; }
+      }
+      leftCount[teamA]++;
+      return { teamA, teamB };
+    });
+
+    // ── 3. Acak urutan pertandingan (tidak berturutan tim sama) ─
+    const shuffled = randomizeOrder(orderedPairs, gt.map((t) => t.id));
+
+    // ── 4. Buat objek match final ─────────────────────────────
+    shuffled.forEach(({ teamA, teamB }) => {
+      allMatches.push({
+        id:     "m" + mid++,
+        group:  g,
+        teamA,
+        teamB,
+        scoreA: 0,
+        scoreB: 0,
+        played: false,
+      });
+    });
   });
-  return matches;
+
+  return allMatches;
+}
+
+/**
+ * Acak urutan pertandingan sehingga tidak ada tim yang main berturutan.
+ * Menggunakan pendekatan greedy shuffle dengan retry jika stuck.
+ */
+function randomizeOrder(pairs, teamIds) {
+  // Coba hingga 20x agar tidak infinite loop di edge case
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const pool    = shuffleArray([...pairs]);
+    const result  = [];
+    let lastTeams = new Set(); // tim yang main di match sebelumnya
+
+    while (pool.length > 0) {
+      // Cari pertandingan yang tidak melibatkan tim yang baru saja main
+      const idx = pool.findIndex(
+        (p) => !lastTeams.has(p.teamA) && !lastTeams.has(p.teamB)
+      );
+
+      if (idx === -1) {
+        // Tidak ada pilihan yang valid → restart attempt ini
+        break;
+      }
+
+      const chosen = pool.splice(idx, 1)[0];
+      result.push(chosen);
+      lastTeams = new Set([chosen.teamA, chosen.teamB]);
+    }
+
+    if (result.length === pairs.length) return result; // sukses
+  }
+
+  // Fallback: kembalikan acak biasa kalau semua attempt gagal
+  // (bisa terjadi pada grup ≤ 2 tim)
+  return shuffleArray([...pairs]);
 }
 
 /* ============================================================
