@@ -113,6 +113,17 @@ async function initAdmin() {
     e.stopPropagation();
     menu?.classList.toggle("hidden");
   });
+
+  // Export jadwal dropdown
+  document.getElementById("exportScheduleWordBtn")?.addEventListener("click", () => exportScheduleToWord());
+  document.getElementById("exportScheduleWordOnlyBtn")?.addEventListener("click", () => exportScheduleToWord());
+  document.getElementById("exportSchedulePdfBtn")?.addEventListener("click", () => exportScheduleToPDF());
+  const schedToggle = document.getElementById("exportScheduleDropdownToggle");
+  const schedMenu = document.getElementById("exportScheduleDropdownMenu");
+  schedToggle?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    schedMenu?.classList.toggle("hidden");
+  });
   document.addEventListener("click", (e) => {
     if (!toggle?.contains(e.target) && !menu?.contains(e.target)) {
       menu?.classList.add("hidden");
@@ -1769,6 +1780,144 @@ ${html}
     printWindow.print();
   }, 500);
   toast('Silakan pilih "Save as PDF" di dialog print ✅', "success");
+}
+
+/* ============ SCHEDULE EXPORT ============ */
+function exportScheduleToWord() {
+  const data = getData();
+  if (!data?.matches?.length) { toast("Belum ada jadwal untuk di-export", "error"); return; }
+  const html = generateScheduleExportHTML(data, "word");
+  const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <style>
+      body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #111; }
+      h2 { font-size: 14pt; border-bottom: 2px solid #1a56db; padding-bottom: 4px; margin-top: 24px; }
+      h3 { font-size: 12pt; color: #1a56db; margin-top: 16px; margin-bottom: 6px; }
+      table { border-collapse: collapse; width: 100%; margin-bottom: 12px; }
+      th { background: #1a56db; color: #fff; padding: 6px 10px; font-size: 10pt; text-align: left; }
+      td { border: 1px solid #ddd; padding: 5px 10px; font-size: 10pt; }
+      tr:nth-child(even) td { background: #f4f8ff; }
+      .report-header { text-align: center; margin-bottom: 20px; }
+      .report-title { font-size: 16pt; font-weight: bold; color: #1a56db; }
+      .report-subtitle { font-size: 10pt; color: #666; }
+      .fp-badge { background: #fef3c7; color: #92400e; padding: 1px 6px; border-radius: 4px; font-size: 9pt; font-weight: bold; }
+      .sp-badge { background: #ede9fe; color: #5b21b6; padding: 1px 6px; border-radius: 4px; font-size: 9pt; font-weight: bold; }
+    </style></head><body>${html}</body></html>`;
+  const blob = new Blob(["\ufeff", fullHtml], { type: "application/msword" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "Jadwal_Grup_Tournament.doc";
+  a.click();
+  URL.revokeObjectURL(url);
+  toast("Export Word jadwal berhasil! ✅", "success");
+}
+
+function exportScheduleToPDF() {
+  const data = getData();
+  if (!data?.matches?.length) { toast("Belum ada jadwal untuk di-export", "error"); return; }
+  const html = generateScheduleExportHTML(data, "pdf");
+  const settings = getSettings();
+  const tournamentName = settings?.tournamentName || "EXPLORA Tournament";
+  const win = window.open("", "_blank");
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Jadwal Grup - ${tournamentName}</title>
+    <style>
+      @media print { body { margin: 0; } .no-print { display: none; } .page-break { page-break-before: always; } }
+      body { font-family: Arial, sans-serif; font-size: 10pt; color: #111; padding: 20px; }
+      h2 { font-size: 13pt; border-bottom: 2px solid #1a56db; padding-bottom: 4px; margin-top: 24px; }
+      h3 { font-size: 11pt; color: #1a56db; margin-top: 14px; margin-bottom: 5px; }
+      table { border-collapse: collapse; width: 100%; margin-bottom: 10px; font-size: 9pt; }
+      th { background: #1a56db; color: #fff; padding: 5px 8px; text-align: left; }
+      td { border: 1px solid #ccc; padding: 4px 8px; }
+      tr:nth-child(even) td { background: #f4f8ff; }
+      .report-header { text-align: center; margin-bottom: 18px; }
+      .report-title { font-size: 15pt; font-weight: bold; color: #1a56db; }
+      .report-subtitle { font-size: 9pt; color: #666; }
+      .fp-badge { background: #fef3c7; color: #92400e; padding: 1px 5px; border-radius: 3px; font-size: 8pt; font-weight: bold; }
+      .sp-badge { background: #ede9fe; color: #5b21b6; padding: 1px 5px; border-radius: 3px; font-size: 8pt; font-weight: bold; }
+      .print-btn { display: block; margin: 0 auto 16px; padding: 8px 24px; background: #1a56db; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 11pt; }
+    </style></head><body>
+    <button class="print-btn no-print" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+    ${html}</body></html>`);
+  win.document.close();
+}
+
+function generateScheduleExportHTML(data, mode = "pdf") {
+  const settings = getSettings();
+  const tournamentName = settings?.tournamentName || "EXPLORA Tournament";
+
+  const teamMap = {};
+  data.teams.forEach((t) => { teamMap[t.id] = t; });
+
+  const groupMatches = {};
+  getActiveGroups().forEach((g) => { groupMatches[g] = []; });
+  data.matches.forEach((m) => {
+    if (groupMatches[m.group] !== undefined) groupMatches[m.group].push(m);
+  });
+
+  let html = `
+    <div class="report-header">
+      <div class="report-title">📅 ${tournamentName} — JADWAL BABAK GRUP</div>
+      <div class="report-subtitle">Dibuat: ${new Date().toLocaleString("id-ID")} &nbsp;|&nbsp; Format: Round Robin BO1</div>
+    </div>`;
+
+  // Ringkasan distribusi first pick per grup
+  for (const g of getActiveGroups()) {
+    const matches = groupMatches[g];
+    if (!matches.length) continue;
+
+    const isBlock1 = ["A","B","C","D"].includes(g);
+    html += `<h3>Grup ${g} <small style="font-weight:normal;font-size:9pt;color:#888;">${isBlock1 ? "(Blok 1)" : "(Blok 2)"}</small></h3>`;
+
+    // Hitung distribusi first/second pick
+    const fpCount = {};
+    const spCount = {};
+    data.teams.filter((t) => t.group === g).forEach((t) => { fpCount[t.id] = 0; spCount[t.id] = 0; });
+    matches.forEach((m) => {
+      if (fpCount[m.teamA] !== undefined) fpCount[m.teamA]++;
+      if (spCount[m.teamB] !== undefined) spCount[m.teamB]++;
+    });
+
+    // Tabel distribusi
+    html += `<table>
+      <thead><tr><th>#</th><th>Tim</th><th>Tag</th><th>Total Match</th><th>First Pick</th><th>Second Pick</th></tr></thead>
+      <tbody>`;
+    data.teams.filter((t) => t.group === g).forEach((t, i) => {
+      const fp = fpCount[t.id] || 0;
+      const sp = spCount[t.id] || 0;
+      html += `<tr>
+        <td>${i + 1}</td>
+        <td>${t.name}</td>
+        <td><code>${t.tag}</code></td>
+        <td>${fp + sp}</td>
+        <td><span class="fp-badge">🔵 ${fp}x</span></td>
+        <td><span class="sp-badge">🟣 ${sp}x</span></td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+
+    if (mode === "pdf") html += `<div class="page-break" style="height:4px;"></div>`;
+
+    // Tabel jadwal
+    html += `<table>
+      <thead><tr><th>#</th><th>Tim A (First Pick)</th><th>vs</th><th>Tim B (Second Pick)</th></tr></thead>
+      <tbody>`;
+    matches.forEach((m, i) => {
+      const a = teamMap[m.teamA];
+      const b = teamMap[m.teamB];
+      html += `<tr>
+        <td>${i + 1}</td>
+        <td><b>${a?.name || "?"}</b> <code style="font-size:8pt;">${a?.tag || ""}</code></td>
+        <td style="text-align:center;">⚔</td>
+        <td><b>${b?.name || "?"}</b> <code style="font-size:8pt;">${b?.tag || ""}</code></td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+
+    if (mode === "pdf") html += `<div class="page-break"></div>`;
+  }
+
+  return html;
 }
 
 function generateExportHTML(data, mode = "pdf") {

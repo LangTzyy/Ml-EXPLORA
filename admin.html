@@ -192,9 +192,17 @@
                 <option value="G">Grup G</option>
                 <option value="H">Grup H</option>
               </select>
-              <button class="btn btn-primary" id="genScheduleBtn">
-                ⟳ Generate Ulang
-              </button>
+              <div class="export-dropdown">
+                <div class="export-btn-group">
+                  <button class="btn btn-secondary sm" id="exportScheduleWordBtn">📄 Export</button>
+                  <button class="btn btn-secondary sm dropdown-toggle" id="exportScheduleDropdownToggle">▼</button>
+                </div>
+                <div class="dropdown-menu hidden" id="exportScheduleDropdownMenu">
+                  <button id="exportScheduleWordOnlyBtn">📄 Export ke Word</button>
+                  <button id="exportSchedulePdfBtn">📑 Export ke PDF</button>
+                </div>
+              </div>
+              <button class="btn btn-primary sm" id="genScheduleBtn">⟳ Generate Ulang</button>
             </div>
           </div>
           <div id="adminSchedule" class="match-list mt-md"></div>

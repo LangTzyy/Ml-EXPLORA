@@ -3151,3 +3151,19 @@ body {
   0% { background-position: 0% center; }
   100% { background-position: 200% center; }
 }
+
+/* ============================================================
+   SCHEDULE TAB — compact export & generate buttons
+   ============================================================ */
+#exportScheduleWordBtn,
+#exportScheduleDropdownToggle,
+#genScheduleBtn {
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+#exportScheduleDropdownToggle {
+  padding: 6px 10px;
+}

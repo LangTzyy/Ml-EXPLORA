@@ -99,9 +99,10 @@ function shuffleArray(arr) {
 }
 
 /**
- * Generate jadwal round-robin per grup dengan 2 aturan random:
- *  1. Urutan pertandingan diacak — tim yang sama tidak main berturutan
- *  2. Posisi first pick (teamA / sisi kiri) diacak secara seimbang per tim
+ * Generate jadwal round-robin per grup:
+ *  - Tiap tim bermain melawan semua tim lain di grup yang sama (1x)
+ *  - First pick dibagi seadil mungkin (5 tim → tiap tim 2x FP, 2x SP)
+ *  - Tim yang baru main tidak langsung main lagi di match berikutnya
  */
 function generateGroupSchedule(teams) {
   const allMatches = [];
@@ -111,7 +112,7 @@ function generateGroupSchedule(teams) {
     const gt = teams.filter((t) => t.group === g);
     if (gt.length < 2) return;
 
-    // ── 1. Buat semua pasangan (belum peduli urutan) ──────────
+    // 1. Buat semua pasangan unik
     const pairs = [];
     for (let i = 0; i < gt.length; i++) {
       for (let j = i + 1; j < gt.length; j++) {
@@ -119,33 +120,67 @@ function generateGroupSchedule(teams) {
       }
     }
 
-    // ── 2. Acak posisi first pick secara seimbang per tim ─────
-    //    Hitung berapa kali tiap tim sudah jadi "sisi kiri" (teamA)
-    const leftCount = {};
-    gt.forEach((t) => (leftCount[t.id] = 0));
+    // 2. Acak urutan — tim yang baru main tidak langsung tampil lagi
+    const orderedPairs = randomizeOrder(pairs, gt.map((t) => t.id));
 
-    const orderedPairs = pairs.map(([a, b]) => {
-      // Pilih siapa yang jadi teamA berdasarkan siapa lebih jarang di kiri
-      // Jika sama, random 50/50
-      let teamA, teamB;
-      if (leftCount[a] < leftCount[b]) {
-        teamA = a; teamB = b;
-      } else if (leftCount[b] < leftCount[a]) {
-        teamA = b; teamB = a;
-      } else {
-        // Sama — random
-        if (Math.random() < 0.5) { teamA = a; teamB = b; }
-        else                      { teamA = b; teamB = a; }
-      }
-      leftCount[teamA]++;
-      return { teamA, teamB };
+    // 3. Assign first pick secara balance (greedy exact)
+    //    Untuk n tim: tiap tim main (n-1) kali
+    //    FP ideal per tim = floor((n-1) / 2), atau ceil jika ganjil
+    const totalMatchPerTeam = gt.length - 1;
+    const fpTarget    = {};  // target ideal FP per tim
+    const fpCount     = {};  // FP yang sudah diterima
+    const matchPlayed = {};  // match yang sudah diproses per tim
+    gt.forEach((t) => {
+      fpTarget[t.id]    = Math.floor(totalMatchPerTeam / 2);
+      fpCount[t.id]     = 0;
+      matchPlayed[t.id] = 0;
     });
 
-    // ── 3. Acak urutan pertandingan (tidak berturutan tim sama) ─
-    const shuffled = randomizeOrder(orderedPairs, gt.map((t) => t.id));
+    // GANTI dari baris: const finalPairs = orderedPairs.map(([a, b]) => {
+// sampai baris: });  (sebelum // 4. Buat objek match final)
 
-    // ── 4. Buat objek match final ─────────────────────────────
-    shuffled.forEach(({ teamA, teamB }) => {
+const finalPairs = orderedPairs.map(([a, b]) => {
+  matchPlayed[a]++;
+  matchPlayed[b]++;
+
+  const remA = totalMatchPerTeam - matchPlayed[a]; // sisa match setelah ini
+  const remB = totalMatchPerTeam - matchPlayed[b];
+
+  const needA = fpTarget[a] - fpCount[a]; // berapa FP lagi yang dibutuhkan A
+  const needB = fpTarget[b] - fpCount[b];
+
+  // Wajib FP sekarang jika kebutuhan == sisa match (termasuk match ini)
+  const mustFpA = needA > 0 && needA === remA + 1;
+  const mustFpB = needB > 0 && needB === remB + 1;
+
+  // Sudah cukup atau over FP
+  const doneA = fpCount[a] >= fpTarget[a];
+  const doneB = fpCount[b] >= fpTarget[b];
+
+  let teamA, teamB;
+
+  if (mustFpA && !mustFpB) {
+    teamA = a; teamB = b;
+  } else if (mustFpB && !mustFpA) {
+    teamA = b; teamB = a;
+  } else if (doneA && !doneB) {
+    // A sudah cukup FP → B yang FP
+    teamA = b; teamB = a;
+  } else if (doneB && !doneA) {
+    // B sudah cukup FP → A yang FP
+    teamA = a; teamB = b;
+  } else {
+    // Bebas: kasih FP ke yang lebih butuh, tie-break by fpCount terkecil
+    teamA = needA >= needB ? a : b;
+    teamB = teamA === a ? b : a;
+  }
+
+  fpCount[teamA]++;
+  return [teamA, teamB];
+});
+
+    // 4. Buat objek match final
+    finalPairs.forEach(([teamA, teamB]) => {
       allMatches.push({
         id:     "m" + mid++,
         group:  g,
@@ -161,38 +196,34 @@ function generateGroupSchedule(teams) {
   return allMatches;
 }
 
-/**
- * Acak urutan pertandingan sehingga tidak ada tim yang main berturutan.
- * Menggunakan pendekatan greedy shuffle dengan retry jika stuck.
- */
 function randomizeOrder(pairs, teamIds) {
-  // Coba hingga 20x agar tidak infinite loop di edge case
-  for (let attempt = 0; attempt < 20; attempt++) {
-    const pool    = shuffleArray([...pairs]);
-    const result  = [];
-    let lastTeams = new Set(); // tim yang main di match sebelumnya
+  // Coba hingga 50x agar tidak infinite loop di edge case
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const pool   = shuffleArray([...pairs]);
+    const result = [];
+    let lastA = null;
+    let lastB = null;
 
     while (pool.length > 0) {
-      // Cari pertandingan yang tidak melibatkan tim yang baru saja main
+      // Cari match yang tidak mengandung tim yang baru saja main
       const idx = pool.findIndex(
-        (p) => !lastTeams.has(p.teamA) && !lastTeams.has(p.teamB)
+        ([a, b]) => a !== lastA && a !== lastB && b !== lastA && b !== lastB
       );
 
       if (idx === -1) {
-        // Tidak ada pilihan yang valid → restart attempt ini
+        // Tidak ada pilihan valid → restart attempt
         break;
       }
 
       const chosen = pool.splice(idx, 1)[0];
       result.push(chosen);
-      lastTeams = new Set([chosen.teamA, chosen.teamB]);
+      [lastA, lastB] = chosen;
     }
 
     if (result.length === pairs.length) return result; // sukses
   }
 
-  // Fallback: kembalikan acak biasa kalau semua attempt gagal
-  // (bisa terjadi pada grup ≤ 2 tim)
+  // Fallback: acak biasa (terjadi pada grup ≤ 2 tim)
   return shuffleArray([...pairs]);
 }
 
