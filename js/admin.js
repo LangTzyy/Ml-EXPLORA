@@ -141,7 +141,9 @@ async function initAdmin() {
   const scheduleFilter = document.getElementById("scheduleFilter");
   const resultsFilter = document.getElementById("resultsFilter");
   scheduleFilter?.addEventListener("change", () => renderAdminSchedule());
-  resultsFilter?.addEventListener("change", () => renderAdminResults());
+  resultsFilter?.addEventListener("change", () => renderAdminSchedule());
+  document.getElementById("scheduleSearch")?.addEventListener("input", () => renderAdminSchedule());
+  document.getElementById("resultsSearch")?.addEventListener("input", () => renderAdminResults());
   const standingsFilter = document.getElementById("standingsFilter");
   standingsFilter?.addEventListener("change", () => renderAdminStandings());
   document
@@ -525,12 +527,24 @@ function renderAdminSchedule() {
   if (!wrap) return;
   const data = getData();
   const filterGroup = document.getElementById("scheduleFilter")?.value || "all";
+  const searchQuery = (document.getElementById("scheduleSearch")?.value || "").toLowerCase().trim();
   let filteredMatches = data.matches;
   if (filterGroup !== "all")
-    filteredMatches = data.matches.filter((m) => m.group === filterGroup);
+    filteredMatches = filteredMatches.filter((m) => m.group === filterGroup);
+  if (searchQuery) {
+    filteredMatches = filteredMatches.filter((m) => {
+      const a = teamById(m.teamA, data);
+      const b = teamById(m.teamB, data);
+      return (
+        a?.name?.toLowerCase().includes(searchQuery) ||
+        b?.name?.toLowerCase().includes(searchQuery)
+      );
+    });
+  }
   if (!filteredMatches.length) {
-    wrap.innerHTML =
-      '<div class="empty-state">📅 Tidak ada jadwal.</div>';
+    wrap.innerHTML = searchQuery
+      ? `<div class="empty-state">🔍 Tidak ada match dengan tim "<strong>${searchQuery}</strong>".</div>`
+      : '<div class="empty-state">📅 Tidak ada jadwal.</div>';
     return;
   }
   wrap.innerHTML = filteredMatches
@@ -699,12 +713,24 @@ function renderAdminResults() {
   if (!wrap) return;
   const data = getData();
   const filterGroup = document.getElementById("resultsFilter")?.value || "all";
+  const searchQuery = (document.getElementById("resultsSearch")?.value || "").toLowerCase().trim();
   let filteredMatches = data.matches;
   if (filterGroup !== "all")
-    filteredMatches = data.matches.filter((m) => m.group === filterGroup);
+    filteredMatches = filteredMatches.filter((m) => m.group === filterGroup);
+  if (searchQuery) {
+    filteredMatches = filteredMatches.filter((m) => {
+      const a = teamById(m.teamA, data);
+      const b = teamById(m.teamB, data);
+      return (
+        a?.name?.toLowerCase().includes(searchQuery) ||
+        b?.name?.toLowerCase().includes(searchQuery)
+      );
+    });
+  }
   if (!filteredMatches.length) {
-    wrap.innerHTML =
-      '<div class="empty-state">⚽ Tidak ada pertandingan.</div>';
+    wrap.innerHTML = searchQuery
+      ? `<div class="empty-state">🔍 Tidak ada match dengan tim "<strong>${searchQuery}</strong>".</div>`
+      : '<div class="empty-state">⚽ Tidak ada pertandingan.</div>';
     return;
   }
   wrap.innerHTML = filteredMatches

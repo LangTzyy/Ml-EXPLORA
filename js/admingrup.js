@@ -127,6 +127,9 @@ async function initGroupAdmin() {
     if (e.target.id === "modalOverlay") closeGAModal();
   });
 
+  document.getElementById("scheduleSearch")?.addEventListener("input", () => renderGASchedule());
+  document.getElementById("resultsSearch")?.addEventListener("input", () => renderGAResults());
+
   // Export dropdown
   document.getElementById("exportWordBtn")?.addEventListener("click", () => exportGAToWord());
   document.getElementById("exportWordOnlyBtn")?.addEventListener("click", () => exportGAToWord());
@@ -277,12 +280,26 @@ function renderGASchedule() {
   const title = document.getElementById("scheduleTitle");
   if (title) title.textContent = `Jadwal Pertandingan — Grup ${group}`;
 
-  if (!matches.length) {
-    wrap.innerHTML = '<div class="empty-state">📭 Belum ada jadwal untuk grup ini.</div>';
+  const searchQuery = (document.getElementById("scheduleSearch")?.value || "").toLowerCase().trim();
+  const filteredMatches = searchQuery
+    ? matches.filter((m) => {
+        const tA = teamById(m.teamA, data);
+        const tB = teamById(m.teamB, data);
+        return (
+          tA?.name?.toLowerCase().includes(searchQuery) ||
+          tB?.name?.toLowerCase().includes(searchQuery)
+        );
+      })
+    : matches;
+
+  if (!filteredMatches.length) {
+    wrap.innerHTML = searchQuery
+      ? `<div class="empty-state">🔍 Tidak ada match dengan tim "<strong>${searchQuery}</strong>".</div>`
+      : '<div class="empty-state">📭 Belum ada jadwal untuk grup ini.</div>';
     return;
   }
 
-  wrap.innerHTML = matches.map((m) => {
+  wrap.innerHTML = filteredMatches.map((m) => {
     const tA = teamById(m.teamA, data);
     const tB = teamById(m.teamB, data);
     const scoreText = m.played ? `${m.scoreA} - ${m.scoreB}` : "- : -";
@@ -316,12 +333,26 @@ function renderGAResults() {
   const title = document.getElementById("resultsTitle");
   if (title) title.textContent = `Input Hasil Pertandingan — Grup ${group} (BO1)`;
 
-  if (!matches.length) {
-    wrap.innerHTML = '<div class="empty-state">📭 Belum ada match untuk grup ini.</div>';
+  const searchQuery = (document.getElementById("resultsSearch")?.value || "").toLowerCase().trim();
+  const filteredMatches = searchQuery
+    ? matches.filter((m) => {
+        const tA = teamById(m.teamA, data);
+        const tB = teamById(m.teamB, data);
+        return (
+          tA?.name?.toLowerCase().includes(searchQuery) ||
+          tB?.name?.toLowerCase().includes(searchQuery)
+        );
+      })
+    : matches;
+
+  if (!filteredMatches.length) {
+    wrap.innerHTML = searchQuery
+      ? `<div class="empty-state">🔍 Tidak ada match dengan tim "<strong>${searchQuery}</strong>".</div>`
+      : '<div class="empty-state">📭 Belum ada match untuk grup ini.</div>';
     return;
   }
 
-  wrap.innerHTML = matches.map((m) => {
+  wrap.innerHTML = filteredMatches.map((m) => {
     const tA = teamById(m.teamA, data);
     const tB = teamById(m.teamB, data);
     return `
